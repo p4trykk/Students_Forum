@@ -1,2 +1,0 @@
-1. cd studentsForumApp\myforum
-2. python manage.py runserver
