@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const authRoutes = require('./routes/authRoutes');
 
-dotenv.config();
+dotenv.config({ path: './backend/.env' });
 
 const app = express();
 app.use(express.json()); 
@@ -15,6 +15,16 @@ app.get('/', (req, res) => {
   res.send('Welcome to the Students Forum API!');
 });
 app.get('/favicon.ico', (req, res) => res.status(204));
+
+app.get('/api', (req, res) => {
+  res.json({
+    message: "Welcome to the Students Forum API",
+    endpoints: {
+      register: "/api/auth/register",
+      login: "/api/auth/login"
+    }
+  });
+});
 
 
 mongoose.connect("mongodb://localhost:27017/students_forum", {}).then(() => {
