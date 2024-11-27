@@ -1,25 +1,36 @@
-import logo from './logo.svg';
-import './App.css';
+import React, { useState } from 'react';
+import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
+import CreatePost from './components/CreatePost';
+import Login from './components/Login'; // Importujemy komponent logowania
 
-function App() {
+const App = () => {
+  // Stan logowania
+  const [isLoggedIn, setIsLoggedIn] = useState(localStorage.getItem('token') !== null);  // Sprawdzamy, czy token jest zapisany w localStorage
+
+  const handleLogout = () => {
+    localStorage.removeItem('token'); // Usuwamy token z localStorage
+    setIsLoggedIn(false); // Zmiana stanu logowania
+  };
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Router>
+      <div>
+        <h1>Students Forum</h1>
+        <nav>
+          <Link to="/create-post">Create Post</Link>
+          {isLoggedIn ? (
+            <button onClick={handleLogout}>Logout</button>  // Przycisk wylogowania
+          ) : (
+            <Link to="/login">Login</Link>  // Link do strony logowania
+          )}
+        </nav>
+        <Routes>
+          <Route path="/create-post" element={<CreatePost />} />
+          <Route path="/login" element={<Login setIsLoggedIn={setIsLoggedIn} />} />  {/* Strona logowania */}
+        </Routes>
+      </div>
+    </Router>
   );
-}
+};
 
 export default App;
