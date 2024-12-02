@@ -10,25 +10,28 @@ const Login = ({ setIsLoggedIn }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     try {
-      const response = await axios.post('http://localhost:5000/api/login', {
-        email,  // Przekazujemy email zamiast username
-        password,
-      });
-
-      const token = response.data.token;  // Zakładając, że odpowiedź zawiera token
-
+      const response = await axios.post(
+        'http://localhost:5000/api/auth/login',
+        { email, password },
+        { withCredentials: true }  
+      );
+  
+      const token = response.data.token;
+  
       if (token) {
-        localStorage.setItem('token', token);  // Zapisanie tokenu w localStorage
-        setIsLoggedIn(true);  // Zmiana stanu logowania w głównym komponencie
-        navigate('/');  // Przekierowanie na stronę główną
+        localStorage.setItem('token', token);  
+        setIsLoggedIn(true);  
+        navigate('/');  
       }
     } catch (error) {
       setError('Login failed, please try again.');
       console.error('Login error:', error);
     }
   };
+  
+  
 
   return (
     <div>

@@ -8,10 +8,22 @@ dotenv.config({ path: './backend/.env' });
 
 const app = express();
 app.use(cors({
-  origin: 'http://localhost:3000',
-  methods: ['GET', 'POST'],
+  origin: 'http://localhost:3000',  
+  credentials: true,                 
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  next();
+});
+
 app.use(express.json()); 
 app.use('/api/auth', authRoutes);
 app.use('/api/posts', postRoutes);
@@ -32,7 +44,6 @@ app.get('/api', (req, res) => {
     }
   });
 });
-
 
 mongoose.connect("mongodb://localhost:27017/students_forum", {}).then(() => {
   console.log('Connected to MongoDB');
