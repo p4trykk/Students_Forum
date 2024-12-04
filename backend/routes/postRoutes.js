@@ -4,7 +4,6 @@ const authMiddleware = require('../middleware/authMiddleware');
 const { createPost } = require('../controllers/postController');
 const router = express.Router();
 
-router.post('/', authMiddleware, createPost);
 
 router.post('/create', authMiddleware, async (req, res) => {
   const { title, content, tags } = req.body;
@@ -56,5 +55,17 @@ router.put('/edit/:postId', authMiddleware, async (req, res) => {
     res.status(500).json({ message: 'Server error while editing post.' });
   }
 });
+
+router.get('/', authMiddleware, async (req, res) => {
+  try {
+    const posts = await Post.find().populate('author', 'username email'); 
+    res.status(200).json(posts);
+  } catch (err) {
+    console.error('Error fetching posts:', err);
+    res.status(500).json({ message: 'Error fetching posts' });
+  }
+});
+
+
 
 module.exports = router;

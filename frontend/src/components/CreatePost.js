@@ -28,7 +28,7 @@ const CreatePost = () => {
 
     try {
       const response = await axios.post(
-        'http://localhost:5000/api/posts',
+        'http://localhost:5000/api/posts/create',
         postData,
         {
           headers: {
