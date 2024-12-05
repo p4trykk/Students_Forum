@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
 import CreatePost from './components/CreatePost';
-import Login from './components/Login'; // Importujemy komponent logowania
+import Login from './components/Login'; 
 import PostList from './components/PostList';
+import EditPost from './components/EditPost';
 
 const App = () => {
   // Stan logowania
@@ -27,6 +28,7 @@ const App = () => {
         </nav>
         <Routes>
           <Route path="/create-post" element={isLoggedIn ? <CreatePost /> : <Login setIsLoggedIn={setIsLoggedIn} />} />
+          <Route path="/edit/:postId" element={<EditPost />} />
           <Route path="/login" element={<Login setIsLoggedIn={setIsLoggedIn} />} />  {/* Strona logowania */}
           <Route path="/" element={<PostList />} />
         </Routes>

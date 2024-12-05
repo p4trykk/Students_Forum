@@ -1,8 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 
 const PostList = () => {
   const [posts, setPosts] = useState([]);
+  const userId = localStorage.getItem('userId'); 
+  console.log("Local Storage userId:", userId);
+
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -14,6 +18,8 @@ const PostList = () => {
           }
         });
         setPosts(response.data);
+        console.log("Fetched posts:", response.data);
+
       } catch (error) {
         console.error('Error fetching posts:', error);
       }
@@ -29,6 +35,12 @@ const PostList = () => {
           <h3>{post.title}</h3>
           <p>{post.content}</p>
           <small>Author: {post.author.username}</small>
+          
+          {post.author._id === userId && (
+            <Link to={`/edit/${post._id}`}>
+              <button>Edit Post</button>
+            </Link>
+          )}
         </div>
       ))}
     </div>

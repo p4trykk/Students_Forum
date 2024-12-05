@@ -18,10 +18,13 @@ const Login = ({ setIsLoggedIn }) => {
         { withCredentials: true }  
       );
   
-      const token = response.data.token;
-  
+      const { token, userId } = response.data;
+      console.log('Login response:', response.data);
+
       if (token) {
         localStorage.setItem('token', token);  
+        localStorage.setItem('userId', userId);
+        console.log('Login response:', response.data);
         setIsLoggedIn(true);  
         navigate('/');  
       }
@@ -39,9 +42,9 @@ const Login = ({ setIsLoggedIn }) => {
       {error && <p>{error}</p>}
       <form onSubmit={handleSubmit}>
         <div>
-          <label>Email</label> {/* Zmiana z username na email */}
+          <label>Email</label> 
           <input
-            type="email"  // Typ pola to teraz 'email'
+            type="email"  
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
