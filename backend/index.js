@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const authRoutes = require('./routes/authRoutes');
 const postRoutes = require('./routes/postRoutes');
+const commentRoutes = require('./routes/commentRoutes');
 const cors = require('cors');
 dotenv.config({ path: './backend/.env' });
 
@@ -27,6 +28,7 @@ app.use((req, res, next) => {
 app.use(express.json()); 
 app.use('/api/auth', authRoutes);
 app.use('/api/posts', postRoutes);
+app.use('/api/comments', commentRoutes);
 // console.log('MONGO_URI:', process.env.MONGO_URI);
 const PORT = process.env.PORT || 5000;
 

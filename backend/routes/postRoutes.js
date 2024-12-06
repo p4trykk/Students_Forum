@@ -56,6 +56,31 @@ router.put('/edit/:postId', authMiddleware, async (req, res) => {
   }
 });
 
+router.post('/like/:postId', authMiddleware, async (req, res) => {
+  const { postId } = req.params;
+  const userId = req.user.userId;
+
+  try {
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found.' });
+    }
+
+    if (post.likes.includes(userId)) {
+      post.likes = post.likes.filter(id => id.toString() !== userId);
+    } else {
+      post.likes.push(userId);
+    }
+
+    await post.save();
+    res.status(200).json({ message: 'Post liked/unliked successfully.', likes: post.likes.length });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error while liking post.' });
+  }
+});
+
+
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const posts = await Post.find().populate('author', 'username email'); 

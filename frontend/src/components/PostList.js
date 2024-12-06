@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import Comments from './Comments';
 
 const PostList = () => {
   const [posts, setPosts] = useState([]);
@@ -27,6 +28,47 @@ const PostList = () => {
     fetchPosts();
   }, []);
 
+  const handleLike = async (postId) => {
+    try {
+      // Optymistyczna aktualizacja stanu
+      setPosts(prevPosts =>
+        prevPosts.map(post =>
+          post._id === postId
+            ? {
+                ...post,
+                likes: Array.isArray(post.likes)
+                  ? post.likes.includes(userId)
+                    ? post.likes.filter(id => id !== userId) // Remove like
+                    : [...post.likes, userId]               // Add like
+                  : [userId] // Jeśli likes jest null, dodaj pierwszy like
+              }
+            : post
+        )
+      );
+  
+      // Wysyłanie żądania do backendu
+      const token = localStorage.getItem('token');
+      const response = await axios.post(
+        `http://localhost:5000/api/posts/like/${postId}`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+  
+      // Synchronizacja stanu z odpowiedzią backendu
+      setPosts(prevPosts =>
+        prevPosts.map(post =>
+          post._id === postId
+            ? { ...post, likes: response.data.likes }
+            : post
+        )
+      );
+    } catch (error) {
+      console.error('Error liking post:', error);
+    }
+  };
+  
+
+
   return (
     <div>
       <h2>Posts</h2>
@@ -41,6 +83,13 @@ const PostList = () => {
               <button>Edit Post</button>
             </Link>
           )}
+
+          <p>Likes: {post.likes?.length || 0}</p>
+          <button onClick={() => handleLike(post._id)}>
+            {Array.isArray(post.likes) && post.likes.includes(userId) ? 'Unlike' : 'Like'}
+          </button>
+          
+          <Comments postId={post._id} />
         </div>
       ))}
     </div>
