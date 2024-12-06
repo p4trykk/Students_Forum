@@ -73,12 +73,35 @@ router.post('/like/:postId', authMiddleware, async (req, res) => {
     }
 
     await post.save();
-    res.status(200).json({ message: 'Post liked/unliked successfully.', likes: post.likes.length });
+    res.status(200).json({ message: 'Post liked/unliked successfully.', likes: post.likes }); 
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error while liking post.' });
   }
 });
+
+router.get('/search', authMiddleware, async (req, res) => {
+  const { title, tags } = req.query;
+
+  try {
+    const query = {};
+    
+    if (title) {
+      query.title = { $regex: title, $options: 'i' }; // Wyszukiwanie po tytule (case-insensitive)
+    }
+    if (tags) {
+      query.tags = { $in: tags.split(',').map(tag => tag.trim()) }; // Wyszukiwanie po tagach
+    }
+
+    const posts = await Post.find(query).populate('author', 'username email');
+    res.status(200).json(posts);
+  } catch (err) {
+    console.error('Error searching posts:', err);
+    res.status(500).json({ message: 'Error searching posts' });
+  }
+});
+
+
 
 
 router.get('/', authMiddleware, async (req, res) => {

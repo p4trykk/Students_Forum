@@ -1,0 +1,23 @@
+tasks:
+1. filtrowanie
+2. logowanie
+3. profile
+4. tworzenie postów
+5. zakładka z tagami
+
+subtasks:
+1.1. paginacja (obsłużenie dużej ilości wyników)
+1.2. sortowanie wyników
+1.3. dynamiczne wyszukiwanie (bez klikania ENTER)
+
+2.1. uruchamianie apki na stronie logowanie
+2.2. autoamtyczne wylogowanie usera (bo teraz jest cały czas zalogowany - tylko wygasa sesja tokena)
+2.3. dodać formularz rejestracji 
+
+3.1. panel profilu usera
+3.2. dodawanie avatarów do profilu
+3.3. jakieś info - data założenia konta, ilość wpisów itp
+
+4.1. dodać funkcje obłsugi plików np. załączniki pdf/jpg/csv/txt
+
+5.1. endpoint z tagami gdzie można przeglądać tagi (również filtrowanie i sortowanie po najpopularniejszych tagach)
