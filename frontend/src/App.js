@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate, Link } from 'react-router-dom';
 import CreatePost from './components/CreatePost';
 import Login from './components/Login';
 import PostList from './components/PostList';
 import EditPost from './components/EditPost';
 import Register from './components/Register';
+import TagList from './components/TagList';
+import FullPost from './components/FullPost';
+import UserProfile from './components/UserProfile';
 
 const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(localStorage.getItem('token') !== null);
@@ -39,6 +42,9 @@ const App = () => {
       <div>
         <h1>Students Forum</h1>
         <nav>
+          <Link to="/posts">Posts</Link>
+          <Link to="/tags">Tags</Link>
+          <Link to="/profile"><button>Profile</button></Link>
           {isLoggedIn ? (
             <button onClick={handleLogout}>Logout</button>
           ) : null}
@@ -67,6 +73,9 @@ const App = () => {
             path="/edit/:postId"
             element={isLoggedIn ? <EditPost /> : <Navigate to="/login" replace />}
           />
+          <Route path="/tags" element={isLoggedIn ? <TagList /> : <Navigate to="/login" replace />} />
+          <Route path="/posts/:postId" element={<FullPost />} />
+          <Route path="/profile" element={<UserProfile />} />
         </Routes>
       </div>
     </Router>

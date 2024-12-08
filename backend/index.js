@@ -9,7 +9,7 @@ dotenv.config({ path: './backend/.env' });
 
 const app = express();
 app.use(cors({
-  origin: 'http://localhost:3000',  
+  origin: process.env.NODE_ENV === 'production' ? 'https://your-production-domain.com' : 'http://localhost:3000',  
   credentials: true,                 
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']

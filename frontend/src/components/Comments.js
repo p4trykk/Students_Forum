@@ -4,6 +4,7 @@ import axios from 'axios';
 const Comments = ({ postId }) => {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -11,9 +12,11 @@ const Comments = ({ postId }) => {
       try {
         const response = await axios.get(`http://localhost:5000/api/comments/${postId}`);
         setComments(response.data);
+        setLoading(false);
       } catch (err) {
         console.error('Error fetching comments:', err);
         setError('Could not load comments.');
+        setLoading(false);
       }
     };
 
@@ -38,6 +41,8 @@ const Comments = ({ postId }) => {
       setError('Could not add comment.');
     }
   };
+  if (loading) return <p>Loading comments...</p>;
+  if (error) return <p>{error}</p>;
 
   return (
     <div>

@@ -101,6 +101,68 @@ router.get('/search', authMiddleware, async (req, res) => {
   }
 });
 
+router.get('/tags', authMiddleware, async (req, res) => {
+  try {
+    const posts = await Post.find();
+    const tagCount = {};
+
+    posts.forEach(post => {
+      post.tags.forEach(tag => {
+        tagCount[tag] = (tagCount[tag] || 0) + 1;
+      });
+    });
+
+    const tags = Object.entries(tagCount)
+      .map(([tag, count]) => ({ tag, count }))
+      .sort((a, b) => b.count - a.count); // Sortowanie po popularności
+
+    res.status(200).json(tags);
+  } catch (err) {
+    console.error('Error fetching tags:', err);
+    res.status(500).json({ message: 'Error fetching tags' });
+  }
+});
+
+// Endpoint: Pobranie postów dla konkretnego tagu
+router.get('/tags/:tag', authMiddleware, async (req, res) => {
+  const { tag } = req.params;
+
+  try {
+    const posts = await Post.find({ tags: req.params.tag })
+      .populate('author', 'username email')
+      .populate({
+        path: 'comments',
+        populate: { path: 'author', select: 'username' }, // Pobiera dane autora komentarza
+      });
+
+    res.status(200).json(posts);
+  } catch (err) {
+    console.error('Error fetching posts by tag:', err);
+    res.status(500).json({ message: 'Error fetching posts by tag' });
+  }
+});
+
+router.get('/:id', authMiddleware, async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const post = await Post.findById(id)
+      .populate('author', 'username email')
+      .populate({
+        path: 'comments',
+        populate: { path: 'author', select: 'username' },
+      });
+
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+
+    res.status(200).json(post);
+  } catch (err) {
+    console.error('Error fetching post:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
 
 

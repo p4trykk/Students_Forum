@@ -97,7 +97,9 @@ const PostList = () => {
             <Link to={`/edit/${post._id}`}>
               <button>Edit Post</button>
             </Link>
+            
           )}
+          <Link to={`/posts/${post._id}`}>View Full Post</Link>
           <p>Tags: {post.tags.join(', ')}</p>
           <p>Likes: {post.likes.length}</p>
           <button onClick={() => handleLike(post._id)}>
