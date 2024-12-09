@@ -6,11 +6,13 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
     unique: true,
+    trim: true,
   },
   email: {
     type: String,
     required: true,
     unique: true,
+    trim: true,
     match: [/.+@.+\..+/, 'Please enter a valid email address'],
   },
   password: {
@@ -18,6 +20,14 @@ const userSchema = new mongoose.Schema({
     required: true,
     minlength: 6,
   },
+  posts: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Post'
+  }],
+  comments: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Comment'
+  }],
   avatar: { type: String },
 }, { timestamps: true });
 

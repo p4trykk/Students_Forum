@@ -21,3 +21,7 @@ subtasks:
 4.1. dodać funkcje obłsugi plików np. załączniki pdf/jpg/csv/txt
 
 5.1. endpoint z tagami gdzie można przeglądać tagi (również filtrowanie i sortowanie po najpopularniejszych tagach)
+
+
+do zzrobienia:
+- błąd z npm przy pobieraniu pakietów (error E404 Not Found - GET https://registry.npmjs.org/)

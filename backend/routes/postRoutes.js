@@ -7,7 +7,7 @@ const router = express.Router();
 
 router.post('/create', authMiddleware, async (req, res) => {
   const { title, content, tags } = req.body;
-  
+
   if (!title || !content) {
     return res.status(400).json({ message: 'Title and content are required.' });
   }
@@ -17,7 +17,7 @@ router.post('/create', authMiddleware, async (req, res) => {
       title,
       content,
       tags,
-      author: req.user.userId
+      userId: req.user.userId,
     });
 
     await post.save();
@@ -27,6 +27,7 @@ router.post('/create', authMiddleware, async (req, res) => {
     res.status(500).json({ message: 'Server error while creating post.' });
   }
 });
+
 
 router.put('/edit/:postId', authMiddleware, async (req, res) => {
   const { postId } = req.params;
@@ -39,7 +40,7 @@ router.put('/edit/:postId', authMiddleware, async (req, res) => {
       return res.status(404).json({ message: 'Post not found.' });
     }
 
-    if (post.author.toString() !== req.user.userId) {
+    if (post.userId.toString() !== req.user.userId) {
       return res.status(403).json({ message: 'You are not authorized to edit this post.' });
     }
 
@@ -55,6 +56,7 @@ router.put('/edit/:postId', authMiddleware, async (req, res) => {
     res.status(500).json({ message: 'Server error while editing post.' });
   }
 });
+
 
 router.post('/like/:postId', authMiddleware, async (req, res) => {
   const { postId } = req.params;
@@ -175,6 +177,16 @@ router.get('/', authMiddleware, async (req, res) => {
     res.status(500).json({ message: 'Error fetching posts' });
   }
 });
+
+router.get('/posts', async (req, res) => {
+  try {
+    const posts = await Post.find().populate('author', 'username email');
+    res.status(200).json(posts);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching posts', error: err });
+  }
+});
+
 
 
 

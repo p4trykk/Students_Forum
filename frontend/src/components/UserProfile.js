@@ -56,7 +56,7 @@ const UserProfile = () => {
     <div>
       <h2>User Profile</h2>
       <div>
-        <img src={user.avatar || '/default-avatar.png'} alt="Avatar" style={{ width: '100px', borderRadius: '50%' }} />
+        <img src={`http://localhost:5000/uploads/${user.avatar}`} alt="Avatar" style={{ width: '100px', borderRadius: '50%' }} />  
         <input type="file" onChange={(e) => setAvatar(e.target.files[0])} />
       </div>
       <div>
