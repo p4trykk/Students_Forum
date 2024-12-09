@@ -15,10 +15,22 @@ const storage = multer.diskStorage({
     cb(null, "uploads/"); // Katalog, gdzie zapisywane są pliki
   },
   filename: (req, file, cb) => {
-    cb(null, Date.now() + "-" + file.originalname); // Unikalna nazwa pliku
+    cb(null, Date.now() + path.extname(file.originalname)); // Unikalna nazwa pliku
   },
 });
-const upload = multer({ storage });
+
+const fileFilter = (req, file, cb) => {
+  if (file.mimetype.startsWith('image/')) {
+    cb(null, true); 
+  } else {
+    cb(new Error('Not an image! Please upload an image file.'));
+  }
+};
+
+const upload = multer({ 
+  storage,
+  fileFilter,
+});
 
 router.post('/register', async (req, res) => {
   const { username, email, password } = req.body;

@@ -5,6 +5,7 @@ const UserProfile = () => {
   const [user, setUser] = useState(null);
   const [avatar, setAvatar] = useState(null);
   const [updatedData, setUpdatedData] = useState({ username: '', email: '', password: '' });
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -25,11 +26,9 @@ const UserProfile = () => {
     try {
       const token = localStorage.getItem('token');
       const formData = new FormData();
-      
-      // Sprawdź czy avatar jest plikiem, jeśli jest, to dodaj go do FormData
-      if (avatar) formData.append('avatar', avatar);
-  
+        
       // Dodaj inne dane użytkownika
+      if (avatar) formData.append('avatar', avatar);
       if (updatedData.username) formData.append('username', updatedData.username);
       if (updatedData.email) formData.append('email', updatedData.email);
       if (updatedData.password) formData.append('password', updatedData.password);
@@ -43,6 +42,7 @@ const UserProfile = () => {
       });
       alert('Profile updated successfully');
       setUser(response.data.user);
+      setIsEditing(false);
     } catch (error) {
       console.error('Error updating profile:', error);
       alert('Failed to update profile');
@@ -55,40 +55,64 @@ const UserProfile = () => {
   return (
     <div>
       <h2>User Profile</h2>
-      <div>
-        <img src={`http://localhost:5000/uploads/${user.avatar}`} alt="Avatar" style={{ width: '100px', borderRadius: '50%' }} />  
-        <input type="file" onChange={(e) => setAvatar(e.target.files[0])} />
-      </div>
-      <div>
-        <label>Username:</label>
-        <input
-          type="text"
-          value={updatedData.username || user.username}
-          onChange={(e) => setUpdatedData({ ...updatedData, username: e.target.value })}
-        />
-      </div>
-      <div>
-        <label>Email:</label>
-        <input
-          type="email"
-          value={updatedData.email || user.email}
-          onChange={(e) => setUpdatedData({ ...updatedData, email: e.target.value })}
-        />
-      </div>
-      <div>
-        <label>Password:</label>
-        <input
-          type="password"
-          placeholder="Enter new password"
-          onChange={(e) => setUpdatedData({ ...updatedData, password: e.target.value })}
-        />
-      </div>
-      <div>
-        <p>Posts: {user.postCount}</p>
-        <p>Comments: {user.commentCount}</p>
-        <p>Account Created: {new Date(user.createdAt).toLocaleDateString()}</p>
-      </div>
-      <button onClick={handleUpdate}>Update Profile</button>
+      {!isEditing ? (
+        <div>
+          <div>
+            <img
+              src={`http://localhost:5000/uploads/${user.avatar}`}
+              style={{ width: '100px', borderRadius: '50%' }}
+            />
+          </div>
+          <div>
+            <p><strong>Username:</strong> {user.username}</p>
+            <p><strong>Email:</strong> {user.email}</p>
+            <p><strong>Bio:</strong> {user.bio || 'No bio available'}</p>
+            <div>
+              <p><strong>Posts:</strong> {user.postCount}</p>
+              <p><strong>Comments:</strong> {user.commentCount}</p>
+              <p><strong>Account Created:</strong> {new Date(user.createdAt).toLocaleDateString()}</p>
+            </div>
+          </div>
+          <button onClick={() => setIsEditing(true)}>Edit Profile</button>
+        </div>
+      ) : (
+        <div>
+          <div>
+            <img
+              src={`http://localhost:5000/uploads/${user.avatar}`}
+              alt="Avatar"
+              style={{ width: '100px', borderRadius: '50%' }}
+            />
+            <input type="file" onChange={(e) => setAvatar(e.target.files[0])} />
+          </div>
+          <div>
+            <label>Username:</label>
+            <input
+              type="text"
+              value={updatedData.username || user.username}
+              onChange={(e) => setUpdatedData({ ...updatedData, username: e.target.value })}
+            />
+          </div>
+          <div>
+            <label>Email:</label>
+            <input
+              type="email"
+              value={updatedData.email || user.email}
+              onChange={(e) => setUpdatedData({ ...updatedData, email: e.target.value })}
+            />
+          </div>
+          <div>
+            <label>Password:</label>
+            <input
+              type="password"
+              placeholder="Enter new password"
+              onChange={(e) => setUpdatedData({ ...updatedData, password: e.target.value })}
+            />
+          </div>
+          <button onClick={handleUpdate}>Update Profile</button>
+          <button onClick={() => setIsEditing(false)}>Cancel</button>
+        </div>
+      )}
     </div>
   );
 };

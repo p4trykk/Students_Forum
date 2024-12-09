@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const authRoutes = require('./routes/authRoutes');
@@ -29,6 +30,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/comments', commentRoutes);
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // console.log('MONGO_URI:', process.env.MONGO_URI);
 const PORT = process.env.PORT || 5000;
 
