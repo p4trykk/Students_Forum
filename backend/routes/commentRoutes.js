@@ -5,7 +5,6 @@ const authMiddleware = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
-// Dodawanie komentarza
 router.post('/create', authMiddleware, async (req, res) => {
   const { content, postId } = req.body;
 
@@ -16,17 +15,20 @@ router.post('/create', authMiddleware, async (req, res) => {
   try {
     const comment = new Comment({
       content,
-      author: req.user.userId,
-      post: postId
+      author: req.user._id, // Use correct user ID from authMiddleware
+      post: postId,
     });
 
     await comment.save();
-    res.status(201).json({ message: 'Comment added successfully.', comment });
+
+    const populatedComment = await Comment.findById(comment._id).populate('author', 'username avatar');
+    res.status(201).json({ message: 'Comment added successfully.', comment: populatedComment });
   } catch (err) {
-    console.error(err);
+    console.error('Error while adding comment:', err);
     res.status(500).json({ message: 'Server error while adding comment.' });
   }
 });
+
 
 router.get('/:postId', async (req, res) => {
   const { postId } = req.params;

@@ -10,42 +10,49 @@ const CreatePost = () => {
   const token = localStorage.getItem('token');  
   if (!token) {
     console.error('Token is missing');
+    setError('You must be logged in to create a post');
     }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!title || !content || !tags) {
-      setError('All fields are required!');
-      return;
-    }
-
-    const postData = {
-      title,
-      content,
-      tags: tags.split(',').map(tag => tag.trim())  
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+    
+      if (!title || !content || !tags) {
+        setError('All fields are required!');
+        return;
+      }
+    
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('You must be logged in to create a post.');
+        return;
+      }
+    
+      const postData = {
+        title,
+        content,
+        tags: tags.split(',').map(tag => tag.trim()),
+      };
+    
+      try {
+        const response = await axios.post(
+          'http://localhost:5000/api/posts/create',
+          postData,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+    
+        console.log('Post creation response:', response.data); 
+    
+        setTitle('');
+        setContent('');
+        setTags('');
+        alert('Post created successfully!');
+      } catch (err) {
+        console.error('Error while creating post:', err.response?.data || err.message); 
+        setError('Failed to create post. Please try again.');
+      }
     };
-
-    try {
-      const response = await axios.post(
-        'http://localhost:5000/api/posts/create',
-        postData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}` 
-          }
-        }
-      );
-
-      setTitle('');
-      setContent('');
-      setTags('');
-      alert('Post created successfully!');
-    } catch (err) {
-      console.error(err);
-      setError('Failed to create post. Please try again.');
-    }
-  };
+    
+    
 
   return (
     <div>

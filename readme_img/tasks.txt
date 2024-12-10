@@ -24,4 +24,4 @@ subtasks:
 
 
 do zzrobienia:
-- błąd z npm przy pobieraniu pakietów (error E404 Not Found - GET https://registry.npmjs.org/)
+- wyświetlanie avatara w profilu usera

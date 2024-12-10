@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import Comments from './Comments';
-
+import Avatar from './Avatar';
 
 const FullPost = () => {
   const { postId } = useParams();
@@ -51,7 +51,10 @@ const FullPost = () => {
     <div>
       <h2>{post.title}</h2>
       <p>{post.content}</p>
-      <small>Author: {post.author?.username || 'Unknown'}</small>
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <Avatar src={post.author.avatar} alt={post.author.username} size={40} />
+        <small style={{ marginLeft: '8px' }}>Author: {post.author?.username || 'Unknown'}</small>
+      </div>
       <p>Tags: {post.tags.join(', ')}</p>
       <p>Likes: {post.likes.length}</p>
       <button onClick={handleLike}>

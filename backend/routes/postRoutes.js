@@ -8,25 +8,27 @@ const router = express.Router();
 router.post('/create', authMiddleware, async (req, res) => {
   const { title, content, tags } = req.body;
 
-  if (!title || !content) {
-    return res.status(400).json({ message: 'Title and content are required.' });
+  if (!title || !content || !tags) {
+    return res.status(400).json({ message: 'Title, content, and tags are required.' });
   }
 
   try {
     const post = new Post({
       title,
       content,
-      tags,
-      userId: req.user.userId,
+      tags, 
+      author: req.user.userId, 
     });
 
     await post.save();
     res.status(201).json({ message: 'Post created successfully.', post });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error while creating post.' });
+    console.error('Error while creating post:', err.message);
+    res.status(500).json({ message: 'Server error while creating post.', error: err.message });
   }
 });
+
+
 
 
 router.put('/edit/:postId', authMiddleware, async (req, res) => {
@@ -60,7 +62,7 @@ router.put('/edit/:postId', authMiddleware, async (req, res) => {
 
 router.post('/like/:postId', authMiddleware, async (req, res) => {
   const { postId } = req.params;
-  const userId = req.user.userId;
+  const userId = req.user._id; 
 
   try {
     const post = await Post.findById(postId);
@@ -69,18 +71,19 @@ router.post('/like/:postId', authMiddleware, async (req, res) => {
     }
 
     if (post.likes.includes(userId)) {
-      post.likes = post.likes.filter(id => id.toString() !== userId);
+      post.likes = post.likes.filter((id) => id.toString() !== userId);
     } else {
       post.likes.push(userId);
     }
 
     await post.save();
-    res.status(200).json({ message: 'Post liked/unliked successfully.', likes: post.likes }); 
+    res.status(200).json({ message: 'Post liked/unliked successfully.', likes: post.likes });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error while liking post.' });
+    console.error('Error in like/unlike:', err.message); 
+    res.status(500).json({ message: 'Server error while liking/unliking post.', error: err.message });
   }
 });
+
 
 router.get('/search', authMiddleware, async (req, res) => {
   const { title, tags } = req.query;
@@ -95,7 +98,7 @@ router.get('/search', authMiddleware, async (req, res) => {
       query.tags = { $in: tags.split(',').map(tag => tag.trim()) }; // Wyszukiwanie po tagach
     }
 
-    const posts = await Post.find(query).populate('author', 'username email');
+    const posts = await Post.find(query).populate('author', 'username email avatar');
     res.status(200).json(posts);
   } catch (err) {
     console.error('Error searching posts:', err);
@@ -131,7 +134,7 @@ router.get('/tags/:tag', authMiddleware, async (req, res) => {
 
   try {
     const posts = await Post.find({ tags: req.params.tag })
-      .populate('author', 'username email')
+      .populate('author', 'username email avatar')
       .populate({
         path: 'comments',
         populate: { path: 'author', select: 'username' }, // Pobiera dane autora komentarza
@@ -149,7 +152,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
 
   try {
     const post = await Post.findById(id)
-      .populate('author', 'username email')
+      .populate('author', 'username email avatar')
       .populate({
         path: 'comments',
         populate: { path: 'author', select: 'username' },
@@ -170,7 +173,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
 
 router.get('/', authMiddleware, async (req, res) => {
   try {
-    const posts = await Post.find().populate('author', 'username email'); 
+    const posts = await Post.find().populate('author', 'username email avatar'); 
     res.status(200).json(posts);
   } catch (err) {
     console.error('Error fetching posts:', err);
@@ -180,7 +183,7 @@ router.get('/', authMiddleware, async (req, res) => {
 
 router.get('/posts', async (req, res) => {
   try {
-    const posts = await Post.find().populate('author', 'username email');
+    const posts = await Post.find().populate('author', 'username email avatar');
     res.status(200).json(posts);
   } catch (err) {
     res.status(500).json({ message: 'Error fetching posts', error: err });

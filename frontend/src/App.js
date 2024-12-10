@@ -42,6 +42,7 @@ const App = () => {
       <div>
         <h1>Students Forum</h1>
         <nav>
+          <Link to="/create-post">Create</Link>
           <Link to="/posts">Posts</Link>
           <Link to="/tags">Tags</Link>
           <Link to="/profile"><button>Profile</button></Link>

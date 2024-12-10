@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import Comments from './Comments';
+import Avatar from './Avatar';
+
 
 const TagList = () => {
   const [tags, setTags] = useState([]);
@@ -79,7 +81,10 @@ const TagList = () => {
               <div key={post._id} style={{ border: '1px solid #ccc', margin: '10px 0', padding: '10px' }}>
                 <h4>{post.title}</h4>
                 <p>{post.content}</p>
-                <small>Author: {post.author.username}</small>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <Avatar src={post.author.avatar} alt={post.author.username} size={30} />
+                  <small style={{ marginLeft: '8px' }}>Author: {post.author.username}</small>
+                </div>
                 <p>Tags: {post.tags.join(', ')}</p>
                 <p>Likes: {post.likes.length}</p>
                 <button onClick={() => handleLike(post._id)}>

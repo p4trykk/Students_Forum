@@ -1,22 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
+
 const UserProfile = () => {
   const [user, setUser] = useState(null);
   const [avatar, setAvatar] = useState(null);
   const [updatedData, setUpdatedData] = useState({ username: '', email: '', password: '' });
   const [isEditing, setIsEditing] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         const token = localStorage.getItem('token');
+        if (!token) {
+          setError('You must be logged in to view your profile');
+          return; 
+        }
         const response = await axios.get('http://localhost:5000/api/auth/profile', {
           headers: { Authorization: `Bearer ${token}` },
         });
         setUser(response.data);
       } catch (error) {
-        console.error('Error fetching user profile:', error);
+        if (error.response) {
+          // Backend error
+          setError(`Error fetching user profile: ${error.response.data.message}`);
+        } else {
+          // Network or other issues
+          setError('There was an error fetching the profile. Please try again.');
+        }
       }
     };
     fetchProfile();
@@ -31,7 +43,10 @@ const UserProfile = () => {
       if (avatar) formData.append('avatar', avatar);
       if (updatedData.username) formData.append('username', updatedData.username);
       if (updatedData.email) formData.append('email', updatedData.email);
-      if (updatedData.password) formData.append('password', updatedData.password);
+      if (updatedData.password && updatedData.password.trim() !== '') {
+        formData.append('password', updatedData.password);
+      }
+      
   
       // Wyślij żądanie do serwera
       const response = await axios.put('http://localhost:5000/api/auth/profile', formData, {
@@ -48,8 +63,9 @@ const UserProfile = () => {
       alert('Failed to update profile');
     }
   };
-  
-
+  if (error) {
+    return <div>{error}</div>;
+  }
   if (!user) return <p>Loading...</p>;
 
   return (
@@ -59,7 +75,8 @@ const UserProfile = () => {
         <div>
           <div>
             <img
-              src={`http://localhost:5000/uploads/${user.avatar}`}
+              src={user.avatar ? `http://localhost:5000${user.avatar}` : 'http://localhost:5000/uploads/def_icon.jpg'}
+              alt="Avatar"
               style={{ width: '100px', borderRadius: '50%' }}
             />
           </div>
@@ -79,7 +96,7 @@ const UserProfile = () => {
         <div>
           <div>
             <img
-              src={`http://localhost:5000/uploads/${user.avatar}`}
+              src={`http://localhost:5000${user.avatar}`}
               alt="Avatar"
               style={{ width: '100px', borderRadius: '50%' }}
             />

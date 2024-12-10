@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import Comments from './Comments';
+import Avatar from './Avatar';
 
 const PostList = () => {
   const [posts, setPosts] = useState([]);
@@ -31,24 +32,31 @@ const PostList = () => {
   }, []);
 
   const handleLike = async (postId) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('You must be logged in to like a post.');
+      return;
+    }
+  
     try {
-      const token = localStorage.getItem('token');
       const response = await axios.post(
         `http://localhost:5000/api/posts/like/${postId}`,
-        {},
+        {}, // No body required
         { headers: { Authorization: `Bearer ${token}` } }
       );
   
-      const updatedLikes = response.data.likes; // Backend zwraca zaktualizowaną tablicę likes
-      setPosts(prevPosts =>
-        prevPosts.map(post =>
+      const updatedLikes = response.data.likes;
+      setPosts((prevPosts) =>
+        prevPosts.map((post) =>
           post._id === postId ? { ...post, likes: updatedLikes } : post
         )
       );
-    } catch (error) {
-      console.error('Error liking post:', error);
+    } catch (err) {
+      console.error('Error liking post:', err.response?.data || err.message);
+      alert('Failed to like the post. Please try again.');
     }
   };
+  
 
   const handleSearch = async () => {
     try {
@@ -91,8 +99,10 @@ const PostList = () => {
         <div key={post._id}>
           <h3>{post.title}</h3>
           <p>{post.content}</p>
-          <small>Author: {post.author.username}</small>
-          
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <Avatar src={post.author.avatar} alt={post.author.username} size={30} />
+            <small style={{ marginLeft: '8px' }}>Author: {post.author.username}</small>
+          </div>
           {post.author._id === userId && (
             <Link to={`/edit/${post._id}`}>
               <button>Edit Post</button>
