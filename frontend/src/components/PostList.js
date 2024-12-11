@@ -18,12 +18,10 @@ const PostList = () => {
         const token = localStorage.getItem('token');
         const response = await axios.get('http://localhost:5000/api/posts', {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+          },
         });
         setPosts(response.data);
-        console.log("Fetched posts:", response.data);
-
       } catch (error) {
         console.error('Error fetching posts:', error);
       }
@@ -33,18 +31,20 @@ const PostList = () => {
 
   const handleLike = async (postId) => {
     const token = localStorage.getItem('token');
+    //const userId = localStorage.getItem('userId');
+    
     if (!token) {
       alert('You must be logged in to like a post.');
       return;
     }
-  
+
     try {
       const response = await axios.post(
         `http://localhost:5000/api/posts/like/${postId}`,
-        {}, // No body required
+        {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
-  
+
       const updatedLikes = response.data.likes;
       setPosts((prevPosts) =>
         prevPosts.map((post) =>
@@ -62,11 +62,11 @@ const PostList = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get('http://localhost:5000/api/posts/search', {
-        params: { 
-          title: searchTerm, 
-          tags: searchTags 
+        params: {
+          title: searchTerm,
+          tags: searchTags,
         },
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       setPosts(response.data);
     } catch (error) {
@@ -80,22 +80,22 @@ const PostList = () => {
     <div>
       <h2>Posts</h2>
       <div>
-        <input 
-          type="text" 
-          placeholder="Search by title" 
-          value={searchTerm} 
-          onChange={(e) => setSearchTerm(e.target.value)} 
+        <input
+          type="text"
+          placeholder="Search by title"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
         />
-        <input 
-          type="text" 
-          placeholder="Search by tags (comma-separated)" 
-          value={searchTags} 
-          onChange={(e) => setSearchTags(e.target.value)} 
+        <input
+          type="text"
+          placeholder="Search by tags (comma-separated)"
+          value={searchTags}
+          onChange={(e) => setSearchTags(e.target.value)}
         />
         <button onClick={handleSearch}>Search</button>
       </div>
 
-      {posts.map(post => (
+      {posts.map((post) => (
         <div key={post._id}>
           <h3>{post.title}</h3>
           <p>{post.content}</p>
@@ -107,14 +107,13 @@ const PostList = () => {
             <Link to={`/edit/${post._id}`}>
               <button>Edit Post</button>
             </Link>
-            
           )}
           <Link to={`/posts/${post._id}`}>View Full Post</Link>
           <p>Tags: {post.tags.join(', ')}</p>
           <p>Likes: {post.likes.length}</p>
           <button onClick={() => handleLike(post._id)}>
-            {post.likes.includes(userId) ? 'Unlike' : 'Like'}
-          </button>      
+            {post.likes.includes(localStorage.getItem('userId')) ? 'Unlike' : 'Like'}
+          </button>
           <Comments postId={post._id} />
         </div>
       ))}

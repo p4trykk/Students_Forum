@@ -62,7 +62,11 @@ router.put('/edit/:postId', authMiddleware, async (req, res) => {
 
 router.post('/like/:postId', authMiddleware, async (req, res) => {
   const { postId } = req.params;
-  const userId = req.user._id; 
+  const userId = req.user?.userId; 
+
+  if (!userId) {
+    return res.status(400).json({ message: 'User ID is missing in request.' });
+  }
 
   try {
     const post = await Post.findById(postId);
@@ -70,8 +74,9 @@ router.post('/like/:postId', authMiddleware, async (req, res) => {
       return res.status(404).json({ message: 'Post not found.' });
     }
 
-    if (post.likes.includes(userId)) {
-      post.likes = post.likes.filter((id) => id.toString() !== userId);
+    const isLiked = post.likes.some((id) => id?.toString() === userId?.toString());
+    if (isLiked) {
+      post.likes = post.likes.filter((id) => id?.toString() !== userId?.toString());
     } else {
       post.likes.push(userId);
     }

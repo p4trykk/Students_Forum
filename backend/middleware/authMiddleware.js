@@ -1,5 +1,4 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
 
 const authMiddleware = (req, res, next) => {
   const token = req.header('Authorization')?.replace('Bearer ', '');
@@ -10,7 +9,7 @@ const authMiddleware = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;  
+    req.user = { userId: decoded.userId };  
     next();
   } catch (error) {
     return res.status(400).json({ message: 'Invalid token.' });

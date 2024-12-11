@@ -15,7 +15,7 @@ router.post('/create', authMiddleware, async (req, res) => {
   try {
     const comment = new Comment({
       content,
-      author: req.user._id, // Use correct user ID from authMiddleware
+      author: req.user?.userId, // Use correct user ID from authMiddleware
       post: postId,
     });
 
