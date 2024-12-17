@@ -3,9 +3,33 @@ const Post = require('../models/Post');
 const authMiddleware = require('../middleware/authMiddleware');
 const { createPost } = require('../controllers/postController');
 const router = express.Router();
+const multer = require('multer');
+const path = require('path');
 
 
-router.post('/create', authMiddleware, async (req, res) => {
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/'); // Folder uploads
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}_${file.originalname}`);
+  },
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // Maksymalny rozmiar 5MB
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/png', 'image/jpeg', 'application/pdf', 'text/plain'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only PNG, JPG, PDF, and TXT allowed.'));
+    }
+  },
+});
+
+router.post('/create', authMiddleware, upload.single('attachment'), async (req, res) => {
   const { title, content, tags } = req.body;
 
   if (!title || !content || !tags) {
@@ -18,6 +42,7 @@ router.post('/create', authMiddleware, async (req, res) => {
       content,
       tags, 
       author: req.user.userId, 
+      attachment: req.file ? req.file.filename : null, 
     });
 
     await post.save();
@@ -197,5 +222,5 @@ router.get('/posts', async (req, res) => {
 
 
 
-
 module.exports = router;
+

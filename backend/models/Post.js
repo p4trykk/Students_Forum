@@ -29,6 +29,9 @@ const postSchema = new mongoose.Schema({
       ref: 'Comment'
     },
   ],
+  attachment: { 
+    type: String 
+  },
   createdAt: {
     type: Date,
     default: Date.now

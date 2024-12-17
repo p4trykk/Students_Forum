@@ -5,60 +5,56 @@ const CreatePost = () => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [tags, setTags] = useState('');
+  const [attachment, setAttachment] = useState(null); // Nowe pole na plik
   const [error, setError] = useState(null);
-  
-  const token = localStorage.getItem('token');  
-  if (!token) {
-    console.error('Token is missing');
-    setError('You must be logged in to create a post');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!title || !content || !tags) {
+      setError('All fields are required!');
+      return;
     }
 
-    const handleSubmit = async (e) => {
-      e.preventDefault();
-    
-      if (!title || !content || !tags) {
-        setError('All fields are required!');
-        return;
-      }
-    
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setError('You must be logged in to create a post.');
-        return;
-      }
-    
-      const postData = {
-        title,
-        content,
-        tags: tags.split(',').map(tag => tag.trim()),
-      };
-    
-      try {
-        const response = await axios.post(
-          'http://localhost:5000/api/posts/create',
-          postData,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-    
-        console.log('Post creation response:', response.data); 
-    
-        setTitle('');
-        setContent('');
-        setTags('');
-        alert('Post created successfully!');
-      } catch (err) {
-        console.error('Error while creating post:', err.response?.data || err.message); 
-        setError('Failed to create post. Please try again.');
-      }
-    };
-    
-    
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setError('You must be logged in to create a post.');
+      return;
+    }
+
+    // Tworzenie formData do przesyłania pliku
+    const formData = new FormData();
+    formData.append('title', title);
+    formData.append('content', content);
+    formData.append('tags', tags);
+    if (attachment) formData.append('attachment', attachment);
+
+    try {
+      const response = await axios.post('http://localhost:5000/api/posts/create', formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      console.log('Post creation response:', response.data);
+
+      setTitle('');
+      setContent('');
+      setTags('');
+      setAttachment(null);
+      alert('Post created successfully!');
+    } catch (err) {
+      console.error('Error while creating post:', err.response?.data || err.message);
+      setError('Failed to create post. Please try again.');
+    }
+  };
 
   return (
     <div>
       <h2>Create a New Post</h2>
       {error && <div style={{ color: 'red' }}>{error}</div>}
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} encType="multipart/form-data">
         <div>
           <label>Title:</label>
           <input 
@@ -74,6 +70,14 @@ const CreatePost = () => {
             value={content}
             onChange={(e) => setContent(e.target.value)} 
             required
+          />
+        </div>
+        <div>
+          <label>Attachment:</label>
+          <input 
+            type="file" 
+            onChange={(e) => setAttachment(e.target.files[0])} 
+            accept=".jpg,.jpeg,.png,.pdf,.txt" 
           />
         </div>
         <div>

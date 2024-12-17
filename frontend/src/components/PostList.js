@@ -99,6 +99,13 @@ const PostList = () => {
         <div key={post._id}>
           <h3>{post.title}</h3>
           <p>{post.content}</p>
+          {post.attachment && (
+            <div>
+              <a href={`http://localhost:5000/uploads/${post.attachment}`} target="_blank" rel="noopener noreferrer">
+                View Attachment
+              </a>
+            </div>
+          )}
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <Avatar src={post.author.avatar} alt={post.author.username} size={30} />
             <small style={{ marginLeft: '8px' }}>Author: {post.author.username}</small>

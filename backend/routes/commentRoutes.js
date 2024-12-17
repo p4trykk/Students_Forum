@@ -2,10 +2,31 @@ const express = require('express');
 const Comment = require('../models/Comment');
 const Post = require('../models/Post');
 const authMiddleware = require('../middleware/authMiddleware');
-
+const path = require('path');
 const router = express.Router();
+const multer = require('multer');
 
-router.post('/create', authMiddleware, async (req, res) => {
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/'); 
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname)); 
+  }
+});
+
+const fileFilter = (req, file, cb) => {
+  if (file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf' || file.mimetype === 'text/plain') {
+    cb(null, true);
+  } else {
+    cb(new Error('Invalid file type!'));
+  }
+};
+
+const upload = multer({ storage, fileFilter });
+
+
+router.post('/create', authMiddleware, upload.single('attachment'), async (req, res) => {
   const { content, postId } = req.body;
 
   if (!content || !postId) {
@@ -17,6 +38,7 @@ router.post('/create', authMiddleware, async (req, res) => {
       content,
       author: req.user?.userId, // Use correct user ID from authMiddleware
       post: postId,
+      attachment: req.file ? req.file.filename : null,
     });
 
     await comment.save();
