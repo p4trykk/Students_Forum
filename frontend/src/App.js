@@ -43,9 +43,9 @@ const App = () => {
       <div>
         <h1>Students Forum</h1>
         <nav>
-          <Link to="/create-post">Create</Link>
-          <Link to="/posts">Posts</Link>
-          <Link to="/tags">Tags</Link>
+          <Link to="/create-post"><button>Create</button></Link>
+          <Link to="/posts"><button>Posts</button></Link>
+          <Link to="/tags"><button>Tags</button></Link>
           <Link to="/rankings"><button>Rankings</button></Link>
           <Link to="/profile"><button>Profile</button></Link>
           {isLoggedIn ? (

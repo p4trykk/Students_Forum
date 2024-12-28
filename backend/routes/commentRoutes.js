@@ -69,7 +69,7 @@ router.get('/comments/:postId', async (req, res) => {
     const postId = req.params.postId;
 
     const comments = await Comment.find({ post: postId })
-      .populate('author', 'username email')
+      .populate('author', 'username avatar')
       .populate('post', 'title');
 
     res.status(200).json(comments);
