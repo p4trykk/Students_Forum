@@ -37,10 +37,11 @@ router.post('/create', authMiddleware, upload.single('attachment'), async (req, 
   }
 
   try {
+    const tagArray = Array.isArray(tags) ? tags : JSON.parse(tags);
     const post = new Post({
       title,
       content,
-      tags, 
+      tags: tagArray, 
       author: req.user.userId, 
       attachment: req.file ? req.file.filename : null, 
     });

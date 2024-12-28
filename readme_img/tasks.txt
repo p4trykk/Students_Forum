@@ -14,9 +14,6 @@ subtasks:
 2.2. autoamtyczne wylogowanie usera (bo teraz jest cały czas zalogowany - tylko wygasa sesja tokena)
 2.3. dodać formularz rejestracji 
 
-3.1. panel profilu usera
-3.2. dodawanie avatarów do profilu
-3.3. jakieś info - data założenia konta, ilość wpisów itp
 
 4.1. dodać funkcje obłsugi plików np. załączniki pdf/jpg/csv/txt
 

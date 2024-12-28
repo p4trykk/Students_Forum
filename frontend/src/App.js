@@ -8,6 +8,7 @@ import Register from './components/Register';
 import TagList from './components/TagList';
 import FullPost from './components/FullPost';
 import UserProfile from './components/UserProfile';
+import Rankings from './components/Rankings';
 
 const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(localStorage.getItem('token') !== null);
@@ -45,6 +46,7 @@ const App = () => {
           <Link to="/create-post">Create</Link>
           <Link to="/posts">Posts</Link>
           <Link to="/tags">Tags</Link>
+          <Link to="/rankings"><button>Rankings</button></Link>
           <Link to="/profile"><button>Profile</button></Link>
           {isLoggedIn ? (
             <button onClick={handleLogout}>Logout</button>
@@ -77,6 +79,7 @@ const App = () => {
           <Route path="/tags" element={isLoggedIn ? <TagList /> : <Navigate to="/login" replace />} />
           <Route path="/posts/:postId" element={<FullPost />} />
           <Route path="/profile" element={<UserProfile />} />
+          <Route path="/rankings" element={<Rankings />} />
         </Routes>
       </div>
     </Router>

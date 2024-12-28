@@ -26,7 +26,7 @@ const CreatePost = () => {
     const formData = new FormData();
     formData.append('title', title);
     formData.append('content', content);
-    formData.append('tags', tags);
+    formData.append('tags', JSON.stringify(tags.split(',').map((tag) => tag.trim())));
     if (attachment) formData.append('attachment', attachment);
 
     try {

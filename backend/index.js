@@ -5,6 +5,7 @@ const dotenv = require('dotenv');
 const authRoutes = require('./routes/authRoutes');
 const postRoutes = require('./routes/postRoutes');
 const commentRoutes = require('./routes/commentRoutes');
+const rankingRoutes = require('./routes/rankingRoutes');
 const cors = require('cors');
 dotenv.config({ path: './backend/.env' });
 
@@ -30,6 +31,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/comments', commentRoutes);
+app.use('/api/rankings', rankingRoutes);
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 app.use((req, res, next) => {
   console.log(`Incoming request: ${req.method} ${req.url}`);

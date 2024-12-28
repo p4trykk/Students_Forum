@@ -116,7 +116,21 @@ const PostList = () => {
             </Link>
           )}
           <Link to={`/posts/${post._id}`}>View Full Post</Link>
-          <p>Tags: {post.tags.join(', ')}</p>
+          <p>Tags: </p>
+          {post.tags && post.tags.map((tag, i) => (
+            <span
+              key={i}
+              style={{
+                marginRight: '5px',
+                padding: '3px 8px',
+                background: '#f0f0f0',
+                borderRadius: '5px',
+                display: 'inline-block',
+              }}
+            >
+              {tag}
+            </span>
+          ))}
           <p>Likes: {post.likes.length}</p>
           <button onClick={() => handleLike(post._id)}>
             {post.likes.includes(localStorage.getItem('userId')) ? 'Unlike' : 'Like'}

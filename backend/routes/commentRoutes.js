@@ -36,7 +36,7 @@ router.post('/create', authMiddleware, upload.single('attachment'), async (req, 
   try {
     const comment = new Comment({
       content,
-      author: req.user?.userId, // Use correct user ID from authMiddleware
+      author: req.user?.userId, 
       post: postId,
       attachment: req.file ? req.file.filename : null,
     });
