@@ -29,6 +29,7 @@ const userSchema = new mongoose.Schema({
     ref: 'Comment'
   }],
   avatar: { type: String },
+  badges: [{ type: String }],
 }, { timestamps: true });
 
 userSchema.pre('save', async function(next) {

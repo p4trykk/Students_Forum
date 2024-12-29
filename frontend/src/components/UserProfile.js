@@ -89,6 +89,20 @@ const UserProfile = () => {
               <p><strong>Comments:</strong> {user.commentCount}</p>
               <p><strong>Account Created:</strong> {new Date(user.createdAt).toLocaleDateString()}</p>
             </div>
+            <div>
+              <h3>Odznaczenia</h3>
+              {user.badges && user.badges.length > 0 ? (
+                <ul>
+                  {user.badges.map((badge, index) => (
+                    <li key={index} style={{ fontSize: '14px', color: '#FFD700' }}>
+                      {badge}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>No badges earned yet.</p>
+              )}
+            </div>
           </div>
           <button onClick={() => setIsEditing(true)}>Edit Profile</button>
         </div>

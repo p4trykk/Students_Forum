@@ -179,6 +179,40 @@ router.put('/update-password', async (req, res) => {
   }
 });
 
+router.get('/user/:userId', async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    // Pobierz dane użytkownika (bez hasła)
+    const user = await User.findById(userId).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Zlicz liczbę postów użytkownika
+    const postCount = await Post.countDocuments({ author: userId });
+
+    // Zlicz liczbę komentarzy użytkownika
+    const commentCount = await Comment.countDocuments({ author: userId });
+
+    // Zwróć dane użytkownika razem ze statystykami
+    res.status(200).json({
+      username: user.username,
+      email: user.email,
+      avatar: user.avatar,
+      bio: user.bio,
+      createdAt: user.createdAt,
+      badges: user.badges || [],
+      postCount,
+      commentCount,
+    });
+  } catch (err) {
+    console.error('Error fetching user data:', err);
+    res.status(500).json({ message: 'Server error while fetching user data' });
+  }
+});
+
 
 
 module.exports = router;

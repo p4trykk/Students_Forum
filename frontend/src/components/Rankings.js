@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom'; // Import nawigacji
 
 const Rankings = () => {
   const [globalRankings, setGlobalRankings] = useState([]);
   const [monthlyRankings, setMonthlyRankings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const navigate = useNavigate(); // Hook do nawigacji
 
   useEffect(() => {
     const fetchRankings = async () => {
@@ -31,6 +33,15 @@ const Rankings = () => {
     fetchRankings();
   }, []);
 
+  const handleProfileClick = (userId) => {
+    const currentUserId = localStorage.getItem('userId');
+    if (userId === currentUserId) {
+      navigate('/profile'); // Przejście do swojego profilu
+    } else {
+      navigate(`/profile/${userId}`); // Przejście do profilu innego użytkownika
+    }
+  };
+
   if (loading) return <p>Loading rankings...</p>;
   if (error) return <p>{error}</p>;
 
@@ -43,7 +54,16 @@ const Rankings = () => {
           <h3>Global Rankings</h3>
           <ul style={{ listStyle: 'none', padding: 0 }}>
             {globalRankings.map((user, index) => (
-              <li key={index} style={{ display: 'flex', alignItems: 'center', margin: '10px 0' }}>
+              <li
+                key={index}
+                onClick={() => handleProfileClick(user._id)} // Kliknięcie
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  margin: '10px 0',
+                  cursor: 'pointer', // Dodanie wskazania, że można kliknąć
+                }}
+              >
                 <img
                   src={`http://localhost:5000/uploads/${user.avatar || 'def_icon.jpg'}`}
                   alt="Avatar"
@@ -60,13 +80,22 @@ const Rankings = () => {
             ))}
           </ul>
         </div>
-  
+
         {/* Kolumna miesięcznych rankingów */}
         <div style={{ flex: 1 }}>
           <h3>Monthly Rankings</h3>
           <ul style={{ listStyle: 'none', padding: 0 }}>
             {monthlyRankings.map((user, index) => (
-              <li key={index} style={{ display: 'flex', alignItems: 'center', margin: '10px 0' }}>
+              <li
+                key={index}
+                onClick={() => handleProfileClick(user._id)} // Kliknięcie
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  margin: '10px 0',
+                  cursor: 'pointer', // Dodanie wskazania, że można kliknąć
+                }}
+              >
                 <img
                   src={`http://localhost:5000/uploads/${user.avatar || 'def_icon.jpg'}`}
                   alt={user.username}
@@ -86,7 +115,6 @@ const Rankings = () => {
       </div>
     </div>
   );
-  
 };
 
 export default Rankings;

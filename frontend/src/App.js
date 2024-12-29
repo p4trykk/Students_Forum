@@ -8,6 +8,7 @@ import Register from './components/Register';
 import TagList from './components/TagList';
 import FullPost from './components/FullPost';
 import UserProfile from './components/UserProfile';
+import OtherUserProfile from './components/OtherUserProfile';
 import Rankings from './components/Rankings';
 
 const App = () => {
@@ -79,6 +80,7 @@ const App = () => {
           <Route path="/tags" element={isLoggedIn ? <TagList /> : <Navigate to="/login" replace />} />
           <Route path="/posts/:postId" element={<FullPost />} />
           <Route path="/profile" element={<UserProfile />} />
+          <Route path="/profile/:userId" element={<OtherUserProfile />} />
           <Route path="/rankings" element={<Rankings />} />
         </Routes>
       </div>

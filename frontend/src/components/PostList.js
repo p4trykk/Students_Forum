@@ -107,9 +107,36 @@ const PostList = () => {
             </div>
           )}
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            <Avatar src={post.author.avatar} alt={post.author.username} size={30} />
-            <small style={{ marginLeft: '8px' }}>Author: {post.author.username}</small>
+            <Avatar
+              src={post.author.avatar}
+              alt={post.author.username}
+              size={30}
+              onClick={() => {
+                if (post.author._id === userId) {
+                  window.location.href = '/profile';
+                } else {
+                  window.location.href = `/profile/${post.author._id}`;
+                }
+              }}
+              style={{ cursor: 'pointer' }}
+            />
+            <small style={{ marginLeft: '8px' }}>
+              Author:{' '}
+              <span
+                style={{ cursor: 'pointer', color: 'blue', textDecoration: 'underline' }}
+                onClick={() => {
+                  if (post.author._id === userId) {
+                    window.location.href = '/profile';
+                  } else {
+                    window.location.href = `/profile/${post.author._id}`;
+                  }
+                }}
+              >
+                {post.author.username}
+              </span>
+            </small>
           </div>
+
           {post.author._id === userId && (
             <Link to={`/edit/${post._id}`}>
               <button>Edit Post</button>

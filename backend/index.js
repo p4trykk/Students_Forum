@@ -6,8 +6,20 @@ const authRoutes = require('./routes/authRoutes');
 const postRoutes = require('./routes/postRoutes');
 const commentRoutes = require('./routes/commentRoutes');
 const rankingRoutes = require('./routes/rankingRoutes');
+const userRoutes = require('./routes/userRoutes');
 const cors = require('cors');
+const cron = require('node-cron');
+const axios = require('axios');
 dotenv.config({ path: './backend/.env' });
+
+cron.schedule('0 0 * * *', async () => { // Uruchamiane codziennie o północy
+  try {
+    await axios.post('http://localhost:5000/api/users/update-badges'); // Zmodyfikuj, jeśli masz inne API
+    console.log('Badges updated successfully (cron job).');
+  } catch (err) {
+    console.error('Error updating badges via cron:', err.message);
+  }
+});
 
 const app = express();
 app.use(cors({
@@ -32,6 +44,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/rankings', rankingRoutes);
+app.use('/api/users', userRoutes);
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 app.use((req, res, next) => {
   console.log(`Incoming request: ${req.method} ${req.url}`);

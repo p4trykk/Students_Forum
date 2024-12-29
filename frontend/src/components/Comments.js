@@ -91,7 +91,16 @@ const Comments = ({ postId }) => {
               }}
             />
             <div>
-              <strong>{comment.author.username}</strong>: {comment.content}
+              <strong>{comment.author.username}</strong>
+              {/* Wyświetlenie odznaczeń */}
+              {comment.author.badges && (
+                <ul style={{ display: 'flex', gap: '10px', marginLeft: '10px' }}>
+                  {comment.author.badges.map((badge, index) => (
+                    <li key={index} style={{ fontSize: '12px', color: '#FFD700' }}>{badge}</li> 
+                  ))}
+                </ul>
+              )}
+              : {comment.content}
               {comment.attachment && (
                 <div>
                   <a

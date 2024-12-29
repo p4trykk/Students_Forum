@@ -64,9 +64,36 @@ const FullPost = () => {
         </div>
       )}
       <div style={{ display: 'flex', alignItems: 'center' }}>
-        <Avatar src={post.author.avatar} alt={post.author.username} size={40} />
-        <small style={{ marginLeft: '8px' }}>Author: {post.author?.username || 'Unknown'}</small>
+        <Avatar
+          src={post.author.avatar}
+          alt={post.author.username}
+          size={40}
+          onClick={() => {
+            if (post.author._id === userId) {
+              window.location.href = '/profile';
+            } else {
+              window.location.href = `/profile/${post.author._id}`;
+            }
+          }}
+          style={{ cursor: 'pointer' }}
+        />
+        <small style={{ marginLeft: '8px' }}>
+          Author:{' '}
+          <span
+            style={{ cursor: 'pointer', color: 'blue', textDecoration: 'underline' }}
+            onClick={() => {
+              if (post.author._id === userId) {
+                window.location.href = '/profile';
+              } else {
+                window.location.href = `/profile/${post.author._id}`;
+              }
+            }}
+          >
+            {post.author.username}
+          </span>
+        </small>
       </div>
+
       <p>Tags: {post.tags.join(', ')}</p>
       <p>Likes: {post.likes.length}</p>
       <button onClick={handleLike}>
