@@ -56,13 +56,24 @@ router.get('/:postId', async (req, res) => {
   const { postId } = req.params;
 
   try {
-    const comments = await Comment.find({ post: postId }).populate('author', 'username');
-    res.status(200).json(comments);
+    const comments = await Comment.find({ post: postId })
+      .populate('author', 'username avatar');
+    
+    const enhancedComments = comments.map((comment) => ({
+      ...comment.toObject(),
+      author: {
+        ...comment.author,
+        avatar: comment.author.avatar || 'def_icon.jpg', 
+      },
+    }));
+    console.log("Fetched comments with enhanced avatar fallback:", enhancedComments);
+    res.status(200).json(enhancedComments);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Error fetching comments.' });
   }
 });
+
 
 router.get('/comments/:postId', async (req, res) => {
   try {
