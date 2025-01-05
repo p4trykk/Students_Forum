@@ -20,5 +20,5 @@ subtasks:
 5.1. endpoint z tagami gdzie można przeglądać tagi (również filtrowanie i sortowanie po najpopularniejszych tagach)
 
 
-do zzrobienia:
-- wyświetlanie avatara w profilu usera
+do zrobienia:
+- emotki TTV z BetterTTV API (błąd przy renderowaniu - nie pokazuje obrazków)
