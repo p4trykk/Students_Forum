@@ -12,23 +12,13 @@ const Comments = ({ postId }) => {
     const fetchComments = async () => {
       try {
         const response = await axios.get(`http://localhost:5000/api/comments/${postId}`);
-        const data = response.data.map((comment) => ({
-          ...comment,
-          author: {
-            ...comment.author,
-            avatar: comment.author.avatar || 'def_icon.jpg', 
-          },
-        }));
-        setComments(data);
+        setComments(response.data);
         setLoading(false);
-        console.log(response.data);
-
       } catch (err) {
         console.error('Error fetching comments:', err);
         setError('Could not load comments.');
         setLoading(false);
       }
-      
     };
 
     fetchComments();
@@ -54,15 +44,8 @@ const Comments = ({ postId }) => {
         formData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      const newCommentData = {
-        ...response.data.comment,
-        author: {
-          ...response.data.comment.author,
-          avatar: response.data.comment.author.avatar || 'def_icon.jpg',
-        },
-      };
 
-      setComments([...comments, newCommentData]);
+      setComments([...comments, response.data.comment]);
       setNewComment('');
       setAttachment(null);
     } catch (err) {
@@ -92,15 +75,12 @@ const Comments = ({ postId }) => {
             />
             <div>
               <strong>{comment.author.username}</strong>
-              {/* Wyświetlenie odznaczeń */}
-              {comment.author.badges && (
-                <ul style={{ display: 'flex', gap: '10px', marginLeft: '10px' }}>
-                  {comment.author.badges.map((badge, index) => (
-                    <li key={index} style={{ fontSize: '12px', color: '#FFD700' }}>{badge}</li> 
-                  ))}
-                </ul>
-              )}
-              : {comment.content}
+              :{' '}
+              {/* Renderowanie zawartości komentarza jako HTML */}
+              <span
+                dangerouslySetInnerHTML={{ __html: comment.content }}
+                style={{ whiteSpace: 'pre-wrap' }}
+              />
               {comment.attachment && (
                 <div>
                   <a

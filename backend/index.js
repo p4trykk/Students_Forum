@@ -7,6 +7,7 @@ const postRoutes = require('./routes/postRoutes');
 const commentRoutes = require('./routes/commentRoutes');
 const rankingRoutes = require('./routes/rankingRoutes');
 const userRoutes = require('./routes/userRoutes');
+const emoteRoutes = require('./routes/emoteRoutes');
 const cors = require('cors');
 const cron = require('node-cron');
 const axios = require('axios');
@@ -45,6 +46,7 @@ app.use('/api/posts', postRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/rankings', rankingRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/emotes', emoteRoutes);
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 app.use((req, res, next) => {
   console.log(`Incoming request: ${req.method} ${req.url}`);
