@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
 const Comments = ({ postId }) => {
@@ -7,12 +7,50 @@ const Comments = ({ postId }) => {
   const [attachment, setAttachment] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [emotes, setEmotes] = useState({});
 
+  // Ładowanie emotek z backendu
+  useEffect(() => {
+    const fetchEmotes = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/api/emotes');
+        const emotesMap = response.data.reduce((map, emote) => {
+          map[emote.code] = emote.url;
+          return map;
+        }, {});
+        setEmotes(emotesMap);
+      } catch (err) {
+        console.error('Error fetching emotes:', err);
+      }
+    };
+
+    fetchEmotes();
+  }, []);
+
+  // Zamiana nazw emotek na obrazki
+  const replaceEmotes = useCallback(
+    (content) => {
+      const regex = new RegExp(`\\b(${Object.keys(emotes).join('|')})\\b`, 'g');
+      return content.replace(regex, (match) => {
+        const emoteUrl = emotes[match];
+        return emoteUrl
+          ? `<img src="${emoteUrl}" alt="${match}" title="${match}" style="width: 28px; height: 28px;" />`
+          : match;
+      });
+    },
+    [emotes]
+  );
+
+  // Pobieranie komentarzy
   useEffect(() => {
     const fetchComments = async () => {
       try {
         const response = await axios.get(`http://localhost:5000/api/comments/${postId}`);
-        setComments(response.data);
+        const updatedComments = response.data.map((comment) => ({
+          ...comment,
+          processedContent: replaceEmotes(comment.content),
+        }));
+        setComments(updatedComments);
         setLoading(false);
       } catch (err) {
         console.error('Error fetching comments:', err);
@@ -20,10 +58,12 @@ const Comments = ({ postId }) => {
         setLoading(false);
       }
     };
-
+  
     fetchComments();
-  }, [postId]);
+  }, [postId, replaceEmotes]);
 
+
+  // Dodanie komentarza
   const handleAddComment = async (e) => {
     e.preventDefault();
 
@@ -44,8 +84,11 @@ const Comments = ({ postId }) => {
         formData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      setComments([...comments, response.data.comment]);
+      const addedComment = {
+        ...response.data.comment,
+        processedContent: replaceEmotes(response.data.comment.content),
+      };
+      setComments([...comments, addedComment]);
       setNewComment('');
       setAttachment(null);
     } catch (err) {
@@ -60,42 +103,38 @@ const Comments = ({ postId }) => {
   return (
     <div>
       <h3>Comments</h3>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      <ul>
-        {comments.map((comment) => (
-          <li key={comment._id} style={{ display: 'flex', alignItems: 'center', margin: '10px 0' }}>
-            <img
-              src={`http://localhost:5000/uploads/${comment.author.avatar || 'def_icon.jpg'}`}
-              alt={`${comment.author.username}'s avatar`}
-              style={{ width: '30px', height: '30px', borderRadius: '50%', marginRight: '10px' }}
-              onError={(e) => {
-                e.target.onerror = null;
-                e.target.src = 'http://localhost:5000/uploads/def_icon.jpg';
-              }}
+      {comments.map((comment) => (
+        <li key={comment._id} style={{ display: 'flex', alignItems: 'center', margin: '10px 0' }}>
+          <img
+            src={`http://localhost:5000/uploads/${comment.author.avatar || 'def_icon.jpg'}`}
+            alt={`${comment.author.username}'s avatar`}
+            style={{ width: '30px', height: '30px', borderRadius: '50%', marginRight: '10px' }}
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = 'http://localhost:5000/uploads/def_icon.jpg';
+            }}
+          />
+          <div>
+            <strong>{comment.author.username}</strong>:{' '}
+            <span
+              dangerouslySetInnerHTML={{ __html: comment.processedContent }}
+              style={{ whiteSpace: 'pre-wrap' }}
             />
-            <div>
-              <strong>{comment.author.username}</strong>
-              :{' '}
-              {/* Renderowanie zawartości komentarza jako HTML */}
-              <span
-                dangerouslySetInnerHTML={{ __html: comment.content }}
-                style={{ whiteSpace: 'pre-wrap' }}
-              />
-              {comment.attachment && (
-                <div>
-                  <a
-                    href={`http://localhost:5000/uploads/${comment.attachment}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    View Attachment
-                  </a>
-                </div>
-              )}
-            </div>
-          </li>
-        ))}
-      </ul>
+            {comment.attachment && (
+              <div>
+                <a
+                  href={`http://localhost:5000/uploads/${comment.attachment}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  View Attachment
+                </a>
+              </div>
+            )}
+          </div>
+        </li>
+      ))}
+
       <form onSubmit={handleAddComment} encType="multipart/form-data">
         <textarea
           value={newComment}

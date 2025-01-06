@@ -1,0 +1,1384 @@
+1. backend\controllers\authController.js:
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const User = require('../models/User');
+
+exports.registerUser = async (req, res) => {
+  const { username, email, password } = req.body;
+
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = new User({ username, email, password: hashedPassword });
+    await newUser.save();
+
+    res.status(201).json({ message: 'User registered successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.loginUser = async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(401).json({ error: 'Invalid credentials' });
+
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    res.json({ 
+      token,
+      userId: user._id  
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.updateProfile = async (req, res) => {
+  const { username, email, password } = req.body;
+
+  try {
+    const user = await User.findById(req.user.userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // Update user data (username, email)
+    if (username) user.username = username;
+    if (email) user.email = email;
+    
+    // Handle password update
+    if (password && password.trim() !== '' && password !== user.password) {
+      const salt = await bcrypt.genSalt(10);
+      user.password = await bcrypt.hash(password, salt);
+    }
+
+    // Handle avatar update
+    if (req.file) {
+      // Delete old avatar if exists
+      if (user.avatar) {
+        const oldAvatarPath = path.join(__dirname, '..', 'uploads', user.avatar);
+        if (fs.existsSync(oldAvatarPath)) {
+          fs.unlinkSync(oldAvatarPath);  // Remove old avatar
+        }
+      }
+      user.avatar = req.file.filename;  // Save new avatar filename in the DB
+    }
+
+    await user.save();
+    res.status(200).json({ message: 'Profile updated successfully', user });
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+
+2. backend\controllers\postController.js:
+exports.createPost = (req, res) => {
+    res.status(201).send({ message: 'Post created successfully!' });
+  };
+  
+
+3. backend\middleware\authMiddleware.js:
+const jwt = require('jsonwebtoken');
+
+const authMiddleware = (req, res, next) => {
+  const token = req.header('Authorization')?.replace('Bearer ', '');
+  
+  if (!token) {
+    return res.status(401).json({ message: 'Access denied. No token provided.' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = { userId: decoded.userId };  
+    next();
+  } catch (error) {
+    return res.status(400).json({ message: 'Invalid token.' });
+  }
+};
+
+module.exports = authMiddleware;
+
+
+4. backend\models\Comment.js:
+const mongoose = require('mongoose');
+
+const commentSchema = new mongoose.Schema({
+  content: { type: String, required: true },
+  author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  post: { type: mongoose.Schema.Types.ObjectId, ref: 'Post', required: true },
+  attachment: { type: String },
+  createdAt: { type: Date, default: Date.now }
+});
+
+module.exports = mongoose.model('Comment', commentSchema);
+
+
+5. backend\models\Post.js:
+const mongoose = require('mongoose');
+
+const postSchema = new mongoose.Schema({
+  title: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  content: {
+    type: String,
+    required: true
+  },
+  author: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User', 
+    required: true
+  },
+  likes: [{ 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'User' 
+  }],
+  tags: [{
+    type: String,
+    trim: true
+  }],
+  comments: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Comment'
+    },
+  ],
+  attachment: { 
+    type: String 
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  updatedAt: {
+    type: Date
+  }
+});
+
+const Post = mongoose.model('Post', postSchema);
+
+module.exports = Post;
+
+
+6. backend\models\User.js: 
+const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
+
+const userSchema = new mongoose.Schema({
+  username: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true,
+  },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true,
+    match: [/.+@.+\..+/, 'Please enter a valid email address'],
+  },
+  password: {
+    type: String,
+    required: true,
+    minlength: 6,
+  },
+  posts: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Post'
+  }],
+  comments: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Comment'
+  }],
+  avatar: { type: String },
+  badges: [{ type: String }],
+}, { timestamps: true });
+
+userSchema.pre('save', async function(next) {
+  if (!this.isModified('password')) return next();
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+  next();
+});
+
+module.exports = mongoose.model('User', userSchema);
+
+
+7. backend\routes\authRoutes.js:
+
+const express = require('express');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const User = require('../models/User');
+const router = express.Router();
+const authMiddleware = require('../middleware/authMiddleware');
+const Post = require('../models/Post');
+const Comment = require('../models/Comment');
+const multer = require("multer");
+const fs = require("fs");
+const path = require("path");
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "uploads/"); // Katalog, gdzie zapisywane są pliki
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname)); // Unikalna nazwa pliku
+  },
+});
+
+const fileFilter = (req, file, cb) => {
+  if (file.mimetype.startsWith('image/')) {
+    cb(null, true); 
+  } else {
+    cb(new Error('Not an image! Please upload an image file.'));
+  }
+};
+
+const upload = multer({ 
+  storage,
+  fileFilter,
+});
+
+router.post('/register', async (req, res) => {
+  const { username, email, password } = req.body;
+
+  try {
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: 'User already exists.' });
+    }
+
+    const newUser = new User({ username, email, password });
+    await newUser.save();
+
+    res.status(201).json({ message: 'User registered successfully.' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+router.post('/login', async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      console.error('Login failed: User not found');
+      return res.status(400).json({ message: 'Invalid credentials: User not found' });
+    }
+    console.log('Hasło w bazie:', user.password);
+    console.log('Przesłane hasło:', password);
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    console.log('Czy hasła pasują?', isMatch);
+
+    if (!isMatch) {
+      console.error('Login failed: Incorrect password');
+      return res.status(400).json({ message: 'Invalid credentials: Incorrect password' });
+    }
+
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    console.log('Login successful:', user);
+    res.json({ 
+      token,
+      userId: user._id 
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+router.get('/profile', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user?.userId; 
+    if (!userId) {
+      return res.status(400).json({ message: 'Invalid token or user ID missing.' });
+    }
+
+    console.log('Fetching profile for userId:', userId);
+    const user = await User.findById(userId).select('-password');
+
+    if (!user) {
+      console.error('User not found for userId:', userId);
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const postCount = await Post.countDocuments({ author: userId });
+    const commentCount = await Comment.countDocuments({ author: userId });
+
+    res.json({
+      ...user.toObject(),
+      postCount,
+      commentCount,
+      avatar: user.avatar ? `/uploads/${user.avatar}` : null,
+    });
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+router.put('/profile', authMiddleware, upload.single('avatar'), async (req, res) => {
+  const { username, email, password } = req.body;
+
+  try {
+    const user = await User.findById(req.user.userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // Aktualizacja danych użytkownika
+    if (username) user.username = username;
+    if (email) user.email = email;
+    console.log('Before update:', user.password);
+    if (password && password.trim() !== '' && password !== user.password) {
+      const salt = await bcrypt.genSalt(10);
+      user.password = await bcrypt.hash(password, salt);
+    }
+    console.log('After update:', user.password);
+    
+
+    // Obsługa avataru
+    if (req.file) {
+      // Usuń stary avatar, jeśli istnieje
+      if (user.avatar) {
+        const oldPath = path.join(__dirname, "..", "uploads", user.avatar);
+        if (fs.existsSync(oldPath)) {
+          fs.unlinkSync(oldPath);
+        }
+      }
+      user.avatar = req.file.filename;
+    }
+
+    await user.save();
+    res.status(200).json({ message: 'Profile updated successfully', user });
+  } catch (error) {
+    console.error('Error updating user profile:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+router.put('/update-password', async (req, res) => {
+  const { userId, newPassword } = req.body;
+
+  try {
+    // Znajdź użytkownika
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Sprawdź, czy hasło jest inne
+    const isSamePassword = await bcrypt.compare(newPassword, user.password);
+    if (isSamePassword) {
+      return res.status(400).json({ message: 'New password cannot be the same as the old password' });
+    }
+
+    // Haszuj tylko czysty tekst hasła
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+
+    // Zapisz użytkownika
+    await user.save();
+
+    console.log('Hasło zaktualizowane:', user.password);
+    res.json({ message: 'Password updated successfully' });
+  } catch (error) {
+    console.error('Error updating password:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.get('/user/:userId', async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    // Pobierz dane użytkownika (bez hasła)
+    const user = await User.findById(userId).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Zlicz liczbę postów użytkownika
+    const postCount = await Post.countDocuments({ author: userId });
+
+    // Zlicz liczbę komentarzy użytkownika
+    const commentCount = await Comment.countDocuments({ author: userId });
+
+    // Zwróć dane użytkownika razem ze statystykami
+    res.status(200).json({
+      username: user.username,
+      email: user.email,
+      avatar: user.avatar,
+      bio: user.bio,
+      createdAt: user.createdAt,
+      badges: user.badges || [],
+      postCount,
+      commentCount,
+    });
+  } catch (err) {
+    console.error('Error fetching user data:', err);
+    res.status(500).json({ message: 'Server error while fetching user data' });
+  }
+});
+
+
+
+module.exports = router;
+
+
+8. backend\routes\commentRoutes.js:
+
+const express = require('express');
+const Comment = require('../models/Comment');
+const Post = require('../models/Post');
+const authMiddleware = require('../middleware/authMiddleware');
+const axios = require('axios');
+const path = require('path');
+const router = express.Router();
+const multer = require('multer');
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/'); 
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname)); 
+  }
+});
+
+const fileFilter = (req, file, cb) => {
+  if (file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf' || file.mimetype === 'text/plain') {
+    cb(null, true);
+  } else {
+    cb(new Error('Invalid file type!'));
+  }
+};
+
+const upload = multer({ storage, fileFilter });
+
+
+async function replaceEmoticonsWithImages(content) {
+  try {
+    // Pobierz emotki z BetterTTV
+    const response = await axios.get('https://api.betterttv.net/3/emotes/shared/top?offset=0&limit=50');
+    const emoticons = response.data;
+
+    // Mapowanie emotikon na znaczniki obrazka
+    let processedContent = content;
+    emoticons.forEach(emote => {
+      const emoteCode = emote.code;
+      const emoteUrl = `https://cdn.betterttv.net/emote/${emote.id}/1x`;
+      const emoteImgTag = `<img src="${emoteUrl}" alt="${emoteCode}" title="${emoteCode}" style="width:20px; height:20px;">`;
+
+      // Zamień wszystkie wystąpienia kodu emotki na znacznik <img>
+      const regex = new RegExp(`\\b${emoteCode}\\b`, 'g'); // Słowo oddzielone spacjami
+      processedContent = processedContent.replace(regex, emoteImgTag);
+    });
+
+    return processedContent;
+  } catch (error) {
+    console.error('Error fetching emoticons:', error.message);
+    return content; // Jeśli wystąpi problem, zwróć oryginalną zawartość
+  }
+}
+
+
+
+router.post('/create', authMiddleware, upload.single('attachment'), async (req, res) => {
+  const { content, postId } = req.body;
+
+  if (!content || !postId) {
+    return res.status(400).json({ message: 'Content and postId are required.' });
+  }
+
+  try {
+
+    const processedContent = await replaceEmoticonsWithImages(content);
+
+    const comment = new Comment({
+      content: processedContent,
+      author: req.user?.userId, 
+      post: postId,
+      attachment: req.file ? req.file.filename : null,
+    });
+
+    await comment.save();
+
+    const populatedComment = await Comment.findById(comment._id).populate('author', 'username avatar');
+    res.status(201).json({ message: 'Comment added successfully.', comment: populatedComment });
+  } catch (err) {
+    console.error('Error while adding comment:', err);
+    res.status(500).json({ message: 'Server error while adding comment.' });
+  }
+});
+
+
+router.get('/:postId', async (req, res) => {
+  const { postId } = req.params;
+
+  try {
+    const comments = await Comment.find({ post: postId }).populate('author', 'username avatar');
+
+    const emotesResponse = await axios.get('http://localhost:5000/api/emotes');
+    const emotes = emotesResponse.data;
+
+    const emoteMap = {};
+    emotes.forEach((emote) => {
+      emoteMap[emote.code] = emote.url;
+    });
+
+    const enhancedComments = comments.map((comment) => ({
+      ...comment.toObject(),
+      content: comment.content.replace(/(\b\w+\b)/g, (code) =>
+        emoteMap[code] ? `<img src="${emoteMap[code]}" alt="${code}" class="btv-emote" />` : code
+      ),
+      author: {
+        ...comment.author,
+        avatar: comment.author.avatar || 'def_icon.jpg',
+      },
+    }));
+
+    console.log('Enhanced Comments:', enhancedComments);
+    res.status(200).json(enhancedComments);
+  } catch (err) {
+    console.error('Error fetching comments with emoticons:', err.message);
+    res.status(500).json({ message: 'Error fetching comments with emoticons.' });
+  }
+});
+
+
+
+router.get('/comments/:postId', async (req, res) => {
+  try {
+    const postId = req.params.postId;
+
+    const comments = await Comment.find({ post: postId })
+      .populate('author', 'username avatar')
+      .populate('post', 'title');
+
+    res.status(200).json(comments);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching comments', error: err });
+  }
+});
+
+
+module.exports = router;
+
+9. backend\routes\emoteRoutes.js:
+
+const express = require('express');
+const axios = require('axios');
+
+const router = express.Router();
+let emotesCache = null; // Cache dla szybszych odpowiedzi
+let lastUpdated = 0; // Timestamp ostatniej aktualizacji
+
+const FETCH_INTERVAL = 6 * 60 * 60 * 1000; // Co 6 godzin odświeżaj cache
+
+const fetchEmotes = async () => {
+  const response = await axios.get('https://api.betterttv.net/3/cached/emotes/global');
+  return response.data.map((emote) => ({
+    id: emote.id,
+    code: emote.code,
+    url: `https://cdn.betterttv.net/emote/${emote.id}/3x`,
+  }));
+};
+
+// Endpoint do pobierania emotek
+router.get('/', async (req, res) => {
+  try {
+    if (!emotesCache || Date.now() - lastUpdated > FETCH_INTERVAL) {
+      emotesCache = await fetchEmotes(); // Odśwież cache
+      lastUpdated = Date.now();
+    }
+    res.json(emotesCache); // Zwróć listę zcache’owanych emotek
+  } catch (err) {
+    console.error('Error fetching BTTV emotes:', err.message);
+    res.status(500).json({ message: 'Failed to fetch emotes.' });
+  }
+});
+
+module.exports = router;
+
+10. backend\routes\postRoutes.js:
+
+const express = require('express');
+const Post = require('../models/Post');
+const authMiddleware = require('../middleware/authMiddleware');
+const { createPost } = require('../controllers/postController');
+const router = express.Router();
+const multer = require('multer');
+const path = require('path');
+
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/'); // Folder uploads
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}_${file.originalname}`);
+  },
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // Maksymalny rozmiar 5MB
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/png', 'image/jpeg', 'application/pdf', 'text/plain'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only PNG, JPG, PDF, and TXT allowed.'));
+    }
+  },
+});
+
+router.post('/create', authMiddleware, upload.single('attachment'), async (req, res) => {
+  const { title, content, tags } = req.body;
+
+  if (!title || !content || !tags) {
+    return res.status(400).json({ message: 'Title, content, and tags are required.' });
+  }
+
+  try {
+    const tagArray = Array.isArray(tags) ? tags : JSON.parse(tags);
+    const post = new Post({
+      title,
+      content,
+      tags: tagArray, 
+      author: req.user.userId, 
+      attachment: req.file ? req.file.filename : null, 
+    });
+
+    await post.save();
+    res.status(201).json({ message: 'Post created successfully.', post });
+  } catch (err) {
+    console.error('Error while creating post:', err.message);
+    res.status(500).json({ message: 'Server error while creating post.', error: err.message });
+  }
+});
+
+
+
+
+router.put('/edit/:postId', authMiddleware, async (req, res) => {
+  const { postId } = req.params;
+  const { title, content, tags } = req.body;
+
+  try {
+    const post = await Post.findById(postId);
+
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found.' });
+    }
+
+    if (post.userId.toString() !== req.user.userId) {
+      return res.status(403).json({ message: 'You are not authorized to edit this post.' });
+    }
+
+    post.title = title || post.title;
+    post.content = content || post.content;
+    post.tags = tags || post.tags;
+    post.updatedAt = Date.now();
+
+    await post.save();
+    res.status(200).json({ message: 'Post updated successfully.', post });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error while editing post.' });
+  }
+});
+
+
+router.post('/like/:postId', authMiddleware, async (req, res) => {
+  const { postId } = req.params;
+  const userId = req.user?.userId; 
+
+  if (!userId) {
+    return res.status(400).json({ message: 'User ID is missing in request.' });
+  }
+
+  try {
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found.' });
+    }
+
+    const isLiked = post.likes.some((id) => id?.toString() === userId?.toString());
+    if (isLiked) {
+      post.likes = post.likes.filter((id) => id?.toString() !== userId?.toString());
+    } else {
+      post.likes.push(userId);
+    }
+
+    await post.save();
+    res.status(200).json({ message: 'Post liked/unliked successfully.', likes: post.likes });
+  } catch (err) {
+    console.error('Error in like/unlike:', err.message); 
+    res.status(500).json({ message: 'Server error while liking/unliking post.', error: err.message });
+  }
+});
+
+
+router.get('/search', authMiddleware, async (req, res) => {
+  const { title, tags } = req.query;
+
+  try {
+    const query = {};
+    
+    if (title) {
+      query.title = { $regex: title, $options: 'i' }; // Wyszukiwanie po tytule (case-insensitive)
+    }
+    if (tags) {
+      query.tags = { $in: tags.split(',').map(tag => tag.trim()) }; // Wyszukiwanie po tagach
+    }
+
+    const posts = await Post.find(query).populate('author', 'username email avatar');
+    res.status(200).json(posts);
+  } catch (err) {
+    console.error('Error searching posts:', err);
+    res.status(500).json({ message: 'Error searching posts' });
+  }
+});
+
+router.get('/tags', authMiddleware, async (req, res) => {
+  try {
+    const posts = await Post.find();
+    const tagCount = {};
+
+    posts.forEach(post => {
+      post.tags.forEach(tag => {
+        tagCount[tag] = (tagCount[tag] || 0) + 1;
+      });
+    });
+
+    const tags = Object.entries(tagCount)
+      .map(([tag, count]) => ({ tag, count }))
+      .sort((a, b) => b.count - a.count); // Sortowanie po popularności
+
+    res.status(200).json(tags);
+  } catch (err) {
+    console.error('Error fetching tags:', err);
+    res.status(500).json({ message: 'Error fetching tags' });
+  }
+});
+
+// Endpoint: Pobranie postów dla konkretnego tagu
+router.get('/tags/:tag', authMiddleware, async (req, res) => {
+  const { tag } = req.params;
+
+  try {
+    const posts = await Post.find({ tags: req.params.tag })
+      .populate('author', 'username email avatar')
+      .populate({
+        path: 'comments',
+        populate: { path: 'author', select: 'username' }, // Pobiera dane autora komentarza
+      });
+
+    res.status(200).json(posts);
+  } catch (err) {
+    console.error('Error fetching posts by tag:', err);
+    res.status(500).json({ message: 'Error fetching posts by tag' });
+  }
+});
+
+router.get('/:id', authMiddleware, async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const post = await Post.findById(id)
+      .populate('author', 'username email avatar')
+      .populate({
+        path: 'comments',
+        populate: { path: 'author', select: 'username' },
+      });
+
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+
+    res.status(200).json(post);
+  } catch (err) {
+    console.error('Error fetching post:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
+
+router.get('/', authMiddleware, async (req, res) => {
+  try {
+    const posts = await Post.find().populate('author', 'username email avatar'); 
+    res.status(200).json(posts);
+  } catch (err) {
+    console.error('Error fetching posts:', err);
+    res.status(500).json({ message: 'Error fetching posts' });
+  }
+});
+
+router.get('/posts', async (req, res) => {
+  try {
+    const posts = await Post.find().populate('author', 'username email avatar');
+    res.status(200).json(posts);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching posts', error: err });
+  }
+});
+
+
+
+module.exports = router;
+
+
+11. backend\routes\userRoutes.js:
+
+const express = require('express');
+const User = require('../models/User');
+const Comment = require('../models/Comment');
+const authMiddleware = require('../middleware/authMiddleware');
+
+const router = express.Router();
+
+router.post('/update-badges', async (req, res) => {
+  try {
+    const users = await User.find(); // Pobieramy wszystkich użytkowników
+    
+    for (const user of users) {
+      const commentCount = await Comment.countDocuments({ author: user._id });
+      
+      const badges = [];
+      
+      // Odznaczenie "Komentator Miesiąca" (najwięcej komentarzy w ciągu ostatnich 30 dni)
+      const monthAgo = new Date();
+      monthAgo.setDate(monthAgo.getDate() - 30);
+      const monthlyComments = await Comment.countDocuments({ 
+        author: user._id, 
+        createdAt: { $gte: monthAgo } 
+      });
+
+      const mostActiveUser = await Comment.aggregate([
+        { $match: { createdAt: { $gte: monthAgo } } },
+        { $group: { _id: '$author', commentCount: { $sum: 1 } } },
+        { $sort: { commentCount: -1 } },
+        { $limit: 1 },
+      ]);
+
+      if (mostActiveUser.length && mostActiveUser[0]._id.toString() === user._id.toString()) {
+        badges.push('Komentator Miesiąca');
+      }
+      
+      // Odznaczenie za 10+ komentarzy
+      if (commentCount >= 10) {
+        badges.push('10+ Komentarzy');
+      }
+
+      user.badges = badges;
+      await user.save();
+    }
+
+    res.status(200).json({ message: 'Badges updated successfully.' });
+  } catch (err) {
+    console.error('Error updating badges:', err);
+    res.status(500).json({ message: 'Error updating badges', error: err });
+  }
+});
+
+module.exports = router;
+
+
+12. backend\index.js:
+
+const express = require('express');
+const path = require('path');
+const mongoose = require('mongoose');
+const dotenv = require('dotenv');
+const authRoutes = require('./routes/authRoutes');
+const postRoutes = require('./routes/postRoutes');
+const commentRoutes = require('./routes/commentRoutes');
+const rankingRoutes = require('./routes/rankingRoutes');
+const userRoutes = require('./routes/userRoutes');
+const emoteRoutes = require('./routes/emoteRoutes');
+const cors = require('cors');
+const cron = require('node-cron');
+const axios = require('axios');
+dotenv.config({ path: './backend/.env' });
+
+cron.schedule('0 0 * * *', async () => { // Uruchamiane codziennie o północy
+  try {
+    await axios.post('http://localhost:5000/api/users/update-badges'); // Zmodyfikuj, jeśli masz inne API
+    console.log('Badges updated successfully (cron job).');
+  } catch (err) {
+    console.error('Error updating badges via cron:', err.message);
+  }
+});
+
+const app = express();
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' ? 'https://your-production-domain.com' : 'http://localhost:3000',  
+  credentials: true,                 
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  next();
+});
+
+app.use(express.json()); 
+app.use('/api/auth', authRoutes);
+app.use('/api/posts', postRoutes);
+app.use('/api/comments', commentRoutes);
+app.use('/api/rankings', rankingRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/emotes', emoteRoutes);
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
+app.use((req, res, next) => {
+  console.log(`Incoming request: ${req.method} ${req.url}`);
+  console.log('Headers:', req.headers);
+  console.log('Body:', req.body);
+  next();
+});
+
+// console.log('MONGO_URI:', process.env.MONGO_URI);
+const PORT = process.env.PORT || 5000;
+
+app.get('/', (req, res) => {
+  res.send('Welcome to the Students Forum API!');
+});
+app.get('/favicon.ico', (req, res) => res.status(204));
+
+app.get('/api', (req, res) => {
+  res.json({
+    message: "Welcome to the Students Forum API",
+    endpoints: {
+      register: "/api/auth/register",
+      login: "/api/auth/login"
+    }
+  });
+});
+
+mongoose.connect("mongodb://localhost:27017/students_forum", {}).then(() => {
+  console.log('Connected to MongoDB');
+  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+}).catch(err => {
+  console.error('Error connecting to MongoDB:', err.message);
+});
+
+
+13. frontend\src\components\Comments.js:
+
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+
+const Comments = ({ postId }) => {
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState('');
+  const [attachment, setAttachment] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchComments = async () => {
+      try {
+        const response = await axios.get(`http://localhost:5000/api/comments/${postId}`);
+        setComments(response.data);
+        setLoading(false);
+      } catch (err) {
+        console.error('Error fetching comments:', err);
+        setError('Could not load comments.');
+        setLoading(false);
+      }
+    };
+
+    fetchComments();
+  }, [postId]);
+
+  const handleAddComment = async (e) => {
+    e.preventDefault();
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setError('You must be logged in to comment.');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('content', newComment);
+    formData.append('postId', postId);
+    if (attachment) formData.append('attachment', attachment);
+
+    try {
+      const response = await axios.post(
+        'http://localhost:5000/api/comments/create',
+        formData,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setComments([...comments, response.data.comment]);
+      setNewComment('');
+      setAttachment(null);
+    } catch (err) {
+      console.error('Error while adding comment:', err.response?.data || err.message);
+      setError('Could not add comment.');
+    }
+  };
+
+  if (loading) return <p>Loading comments...</p>;
+  if (error) return <p>{error}</p>;
+
+  return (
+    <div>
+      <h3>Comments</h3>
+      {error && <p style={{ color: 'red' }}>{error}</p>}
+      <ul>
+        {comments.map((comment) => (
+          <li key={comment._id} style={{ display: 'flex', alignItems: 'center', margin: '10px 0' }}>
+            <img
+              src={`http://localhost:5000/uploads/${comment.author.avatar || 'def_icon.jpg'}`}
+              alt={`${comment.author.username}'s avatar`}
+              style={{ width: '30px', height: '30px', borderRadius: '50%', marginRight: '10px' }}
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = 'http://localhost:5000/uploads/def_icon.jpg';
+              }}
+            />
+            <div>
+              <strong>{comment.author.username}</strong>
+              :{' '}
+              <span
+                dangerouslySetInnerHTML={{ __html: comment.content }}
+                style={{ whiteSpace: 'pre-wrap' }}
+              />
+              {comment.attachment && (
+                <div>
+                  <a
+                    href={`http://localhost:5000/uploads/${comment.attachment}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    View Attachment
+                  </a>
+                </div>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+      <form onSubmit={handleAddComment} encType="multipart/form-data">
+        <textarea
+          value={newComment}
+          onChange={(e) => setNewComment(e.target.value)}
+          placeholder="Write a comment..."
+          required
+        ></textarea>
+        <div>
+          <label>Attachment:</label>
+          <input
+            type="file"
+            onChange={(e) => setAttachment(e.target.files[0])}
+            accept=".jpg,.jpeg,.png,.pdf,.txt"
+          />
+        </div>
+        <button type="submit">Add Comment</button>
+      </form>
+    </div>
+  );
+};
+
+export default Comments;
+
+
+14. frontend\src\components\PostList.js:
+import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import axios from 'axios';
+import Comments from './Comments';
+import Avatar from './Avatar';
+
+const PostList = () => {
+  const [posts, setPosts] = useState([]);
+  const userId = localStorage.getItem('userId'); 
+  console.log("Local Storage userId:", userId);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTags, setSearchTags] = useState('');
+
+
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await axios.get('http://localhost:5000/api/posts', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        setPosts(response.data);
+      } catch (error) {
+        console.error('Error fetching posts:', error);
+      }
+    };
+    fetchPosts();
+  }, []);
+
+  const handleLike = async (postId) => {
+    const token = localStorage.getItem('token');
+    //const userId = localStorage.getItem('userId');
+    
+    if (!token) {
+      alert('You must be logged in to like a post.');
+      return;
+    }
+
+    try {
+      const response = await axios.post(
+        `http://localhost:5000/api/posts/like/${postId}`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const updatedLikes = response.data.likes;
+      setPosts((prevPosts) =>
+        prevPosts.map((post) =>
+          post._id === postId ? { ...post, likes: updatedLikes } : post
+        )
+      );
+    } catch (err) {
+      console.error('Error liking post:', err.response?.data || err.message);
+      alert('Failed to like the post. Please try again.');
+    }
+  };
+  
+
+  const handleSearch = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get('http://localhost:5000/api/posts/search', {
+        params: {
+          title: searchTerm,
+          tags: searchTags,
+        },
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setPosts(response.data);
+    } catch (error) {
+      console.error('Error searching posts:', error);
+    }
+  };
+  
+  
+
+  return (
+    <div>
+      <h2>Posts</h2>
+      <div>
+        <input
+          type="text"
+          placeholder="Search by title"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+        <input
+          type="text"
+          placeholder="Search by tags (comma-separated)"
+          value={searchTags}
+          onChange={(e) => setSearchTags(e.target.value)}
+        />
+        <button onClick={handleSearch}>Search</button>
+      </div>
+
+      {posts.map((post) => (
+        <div key={post._id}>
+          <h3>{post.title}</h3>
+          <p>{post.content}</p>
+          {post.attachment && (
+            <div>
+              <a href={`http://localhost:5000/uploads/${post.attachment}`} target="_blank" rel="noopener noreferrer">
+                View Attachment
+              </a>
+            </div>
+          )}
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <Avatar
+              src={post.author.avatar}
+              alt={post.author.username}
+              size={30}
+              onClick={() => {
+                if (post.author._id === userId) {
+                  window.location.href = '/profile';
+                } else {
+                  window.location.href = `/profile/${post.author._id}`;
+                }
+              }}
+              style={{ cursor: 'pointer' }}
+            />
+            <small style={{ marginLeft: '8px' }}>
+              Author:{' '}
+              <span
+                style={{ cursor: 'pointer', color: 'blue', textDecoration: 'underline' }}
+                onClick={() => {
+                  if (post.author._id === userId) {
+                    window.location.href = '/profile';
+                  } else {
+                    window.location.href = `/profile/${post.author._id}`;
+                  }
+                }}
+              >
+                {post.author.username}
+              </span>
+            </small>
+          </div>
+
+          {post.author._id === userId && (
+            <Link to={`/edit/${post._id}`}>
+              <button>Edit Post</button>
+            </Link>
+          )}
+          <Link to={`/posts/${post._id}`}>View Full Post</Link>
+          <p>Tags: </p>
+          {post.tags && post.tags.map((tag, i) => (
+            <span
+              key={i}
+              style={{
+                marginRight: '5px',
+                padding: '3px 8px',
+                background: '#f0f0f0',
+                borderRadius: '5px',
+                display: 'inline-block',
+              }}
+            >
+              {tag}
+            </span>
+          ))}
+          <p>Likes: {post.likes.length}</p>
+          <button onClick={() => handleLike(post._id)}>
+            {post.likes.includes(localStorage.getItem('userId')) ? 'Unlike' : 'Like'}
+          </button>
+          <Comments postId={post._id} />
+        </div>
+      ))}
+    </div>
+  );
+};
+
+export default PostList;
+
+
+15. frontend\src\App.js:
+
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Route, Routes, Navigate, Link } from 'react-router-dom';
+import CreatePost from './components/CreatePost';
+import Login from './components/Login';
+import PostList from './components/PostList';
+import EditPost from './components/EditPost';
+import Register from './components/Register';
+import TagList from './components/TagList';
+import FullPost from './components/FullPost';
+import UserProfile from './components/UserProfile';
+import OtherUserProfile from './components/OtherUserProfile';
+import Rankings from './components/Rankings';
+
+const App = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState(localStorage.getItem('token') !== null);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setIsLoggedIn(false);
+  };
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      const expirationTime = JSON.parse(atob(token.split('.')[1])).exp * 1000;
+      const currentTime = Date.now();
+
+      if (currentTime >= expirationTime) {
+        localStorage.removeItem('token');
+        setIsLoggedIn(false);
+      } else {
+        const timeout = setTimeout(() => {
+          localStorage.removeItem('token');
+          setIsLoggedIn(false);
+        }, expirationTime - currentTime);
+
+        return () => clearTimeout(timeout);
+      }
+    }
+  }, [isLoggedIn]);
+
+  return (
+    <Router>
+      <div>
+        <h1>Students Forum</h1>
+        <nav>
+          <Link to="/create-post"><button>Create</button></Link>
+          <Link to="/posts"><button>Posts</button></Link>
+          <Link to="/tags"><button>Tags</button></Link>
+          <Link to="/rankings"><button>Rankings</button></Link>
+          <Link to="/profile"><button>Profile</button></Link>
+          {isLoggedIn ? (
+            <button onClick={handleLogout}>Logout</button>
+          ) : null}
+        </nav>
+        <Routes>
+          {/* Domyślna trasa dla niezalogowanego użytkownika */}
+          <Route
+            path="/"
+            element={
+              isLoggedIn ? <Navigate to="/posts" replace /> : <Navigate to="/login" replace />
+            }
+          />
+          {/* Strony logowania i rejestracji */}
+          <Route path="/login" element={<Login setIsLoggedIn={setIsLoggedIn} />} />
+          <Route path="/register" element={<Register />} />
+          {/* Strony dostępne tylko dla zalogowanych użytkowników */}
+          <Route
+            path="/posts"
+            element={isLoggedIn ? <PostList /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/create-post"
+            element={isLoggedIn ? <CreatePost /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/edit/:postId"
+            element={isLoggedIn ? <EditPost /> : <Navigate to="/login" replace />}
+          />
+          <Route path="/tags" element={isLoggedIn ? <TagList /> : <Navigate to="/login" replace />} />
+          <Route path="/posts/:postId" element={<FullPost />} />
+          <Route path="/profile" element={<UserProfile />} />
+          <Route path="/profile/:userId" element={<OtherUserProfile />} />
+          <Route path="/rankings" element={<Rankings />} />
+        </Routes>
+      </div>
+    </Router>
+  );
+};
+
+export default App;
+
+
+
+
+
+
+
+
+
+
+
+
+

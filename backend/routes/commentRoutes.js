@@ -29,28 +29,26 @@ const upload = multer({ storage, fileFilter });
 
 async function replaceEmoticonsWithImages(content) {
   try {
-    // Pobierz emotki z BetterTTV
     const response = await axios.get('https://api.betterttv.net/3/emotes/shared/top?offset=0&limit=50');
     const emoticons = response.data;
 
-    // Mapowanie emotikon na znaczniki obrazka
     let processedContent = content;
-    emoticons.forEach(emote => {
+    emoticons.forEach((emote) => {
       const emoteCode = emote.code;
       const emoteUrl = `https://cdn.betterttv.net/emote/${emote.id}/1x`;
       const emoteImgTag = `<img src="${emoteUrl}" alt="${emoteCode}" title="${emoteCode}" style="width:20px; height:20px;">`;
 
-      // Zamień wszystkie wystąpienia kodu emotki na znacznik <img>
-      const regex = new RegExp(`\\b${emoteCode}\\b`, 'g'); // Słowo oddzielone spacjami
+      const regex = new RegExp(`\\b${emoteCode}\\b`, 'g');
       processedContent = processedContent.replace(regex, emoteImgTag);
     });
-
+    console.log('Processed Content:', processedContent); // Verify replacements
     return processedContent;
   } catch (error) {
     console.error('Error fetching emoticons:', error.message);
-    return content; // Jeśli wystąpi problem, zwróć oryginalną zawartość
+    return content; // Return original if processing fails
   }
 }
+
 
 
 
@@ -89,6 +87,7 @@ router.get('/:postId', async (req, res) => {
   try {
     const comments = await Comment.find({ post: postId }).populate('author', 'username avatar');
 
+    // Fetch global emotes from BTTV cache
     const emotesResponse = await axios.get('http://localhost:5000/api/emotes');
     const emotes = emotesResponse.data;
 
@@ -99,8 +98,8 @@ router.get('/:postId', async (req, res) => {
 
     const enhancedComments = comments.map((comment) => ({
       ...comment.toObject(),
-      content: comment.content.replace(/(\b\w+\b)/g, (code) =>
-        emoteMap[code] ? `<img src="${emoteMap[code]}" alt="${code}" class="btv-emote" />` : code
+      content: comment.content.replace(/\b(\w+)\b/g, (match) =>
+        emoteMap[match] ? `<img src="${emoteMap[match]}" alt="${match}" class="bttv-emote" style="width: 28px; height: 28px;" />` : match
       ),
       author: {
         ...comment.author,
@@ -108,13 +107,13 @@ router.get('/:postId', async (req, res) => {
       },
     }));
 
-    console.log('Enhanced Comments:', enhancedComments);
     res.status(200).json(enhancedComments);
   } catch (err) {
     console.error('Error fetching comments with emoticons:', err.message);
     res.status(500).json({ message: 'Error fetching comments with emoticons.' });
   }
 });
+
 
 
 
